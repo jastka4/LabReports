@@ -80,8 +80,12 @@ Zadanie polegało na odczytaniu SMSów zapisanych w pamięci karty elektroniczne
 \item A4 00 00 02 6F3C - wybranie pliku z SMSami (EF - elementary file).
 \item C0 00 00 0F - pobranie odpowiedzi o długości 0F.
 \item B2 00 02 B0 - odczytanie wybranego rekordu (02 - tryb, w którym wskaźnik jest inkrementowany przed odczytem. Jeśli w wybranym EF nie odczytano jeszcze żadnego rekordu funkcja odczyta pierwszy rekord i ustawi na nim wskaźnik).
-\item B2 01 02 B0 - odczytanie następnego rekordu.
-\item B2 02 02 B0 - odczytanie następnego rekordu.
+\item C0 00 00 00 - odczytanie zawartości rekordu (ostatni oktet "00" oznacza pobranie rekordu o długości 256 bajtów)
+\item B2 01 02 B0 - wybranie następnego rekordu.
+\item C0 00 00 00 - odczytanie zawartości rekordu.
+\item B2 02 02 B0 - wybranie następnego rekordu.
+\item C0 00 00 00 - odczytanie zawartości rekordu.
+
 \end{enumerate}
 \begin{table}[ht]
     \centering
@@ -114,6 +118,7 @@ Zadanie polegało na odczytaniu SMSów zapisanych w pamięci karty elektroniczne
 \end{table}
 Aby odkodować wiadomości posłużyliśmy się aplikacją na stronie: \url{https://www.diafaan.com/sms-tutorials/gsm-modem-tutorial/online-sms-pdu-decoder/}
 \section{Wnioski}
+To ćwiczenie pozwoliło nam zapoznać się z podstawami obsługi kart chipowych i zobaczyć jak odczytać zapisane na nich dane. Wiedza taka może nam się przydać, na przykład, do stworzenia oprogramowania czytnika kart elektronicznych, dzięki któremu można będzie blokować wejście do pomieszczenia.
 \bibliographystyle{plain}
 \bibliography{references}
 \end{document}
