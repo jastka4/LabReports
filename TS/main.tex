@@ -1,0 +1,416 @@
+\documentclass[12pt,a4paper,titlepage]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{polski}
+\usepackage[margin=1in]{geometry}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{minted}
+\usepackage{multirow}
+\usepackage{ctable}
+\usepackage{float}
+\usepackage{tabu}
+\usepackage{longtable}
+
+\newcommand{\specialcell}[2][c]{%
+  \begin{tabular}[#1]{@{}c@{}}#2\end{tabular}}
+\newcommand{\specialcellbold}[2][c]{%
+  \bfseries
+  \begin{tabular}[#1]{@{}l@{}}#2\end{tabular}%
+}
+  
+\makeatletter
+\newcommand{\linia}{\rule{\linewidth}{0.4mm}}
+\renewcommand{\maketitle}{\begin{titlepage}
+    \vspace*{1cm}
+    \begin{center}\small
+    Politechnika Wrocławska\\
+    Wydział Elektroniki\\
+    Technologie Sieciowe
+    \end{center}
+    \vspace{3cm}
+    \noindent\linia
+    \begin{center}
+      \LARGE \textsc{\@title}
+         \end{center}
+     \linia
+    \vspace{0.5cm}
+    \begin{flushright}
+    \begin{minipage}{7cm}
+    \textit{\small Autorzy:}\\
+    \normalsize \textsc{\@author} \par
+    \end{minipage}
+    \vspace{5cm}
+
+     {\small wtorek, 17\textsuperscript{05}-18\textsuperscript{45} TN}\\
+        Dr inż. Michał Kucharzak
+     \end{flushright}
+    \vspace*{\stretch{6}}
+    \begin{center}
+    \@date
+    \end{center}
+  \end{titlepage}%
+}
+\makeatother
+\author{Justyna Skalska, 225942 \\
+Bartosz Powęska, 234720
+}
+\title{Projekt sieci}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Wstęp}
+Niniejsza dokumentacja jest projektem lokalnej sieci komputerowej dla firmy „G.I. Industries” zajmującej się produkcją oprogramowania znajdującego zastosowanie w obsłudze specjalistycznych robotów używanych w procesie produkcji pojazdów militarnych. Projekt został opracowany na podstawie dokumentacji dostarczonej przez zleceniodawcę i jest przystosowany na przewidywany wzrost liczby pracowników. W pracach nad projektem kierowano się przede wszystkim niezawodnością (przy przewidywanych obciążeniach) i łatwością rozbudowy sieci w przyszłości.
+\section{Inwentaryzacja zasobów}
+
+Siedziba firmy składa się z dwóch znajdujących się blisko siebie budynków. Pierwszy budynek jest dwupiętrowy, drugi natomiast jest parterowcem. Pomiędzy nimi nie znajdują się żadne zabudowania. W firmie są trzy grupy robocze: zarząd i kadry, programiści i testerzy oraz administratorzy.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{c|c|c|c|c|}
+    \cline{2-5}
+    & \multicolumn{4}{c|}{\specialcellbold{Liczba użytkowników}} \\ \cline{2-5}
+    & \multicolumn{3}{c|}{\specialcellbold{Budynek A}} & \multicolumn{1}{c|}{\specialcellbold{Budynek B}} \\ \hline 
+         \multicolumn{1}{|c|}{\specialcellbold{Grupa robocza}} & \specialcellbold{Parter} & \specialcellbold{Piętro 1} & \specialcellbold{Piętro 2} & \specialcellbold{Parter} \\ \hline
+         \multicolumn{1}{|c|}{Zarząd i kadry} & - & 6 & 16 & 12 \\ \hline
+         \multicolumn{1}{|c|}{Programiści i testerzy} & - & 49 & 31 & 68 \\ \hline
+         \multicolumn{1}{|c|}{Administratorzy} & 4 & - & - & 2 \\ \hline
+         & \multicolumn{4}{c|}{\specialcellbold{Liczba drukarek}} \\ \cline{2-5}
+         & 1 & 2 & 2 & 2 \\ \cline{2-5}
+         & \multicolumn{4}{c|}{\specialcellbold{Kamery IP}} \\ \cline{2-5}
+         & 8 & 5 & 5 & 8 \\ \cline{2-5}
+         & \multicolumn{4}{c|}{\specialcellbold{Laboratorium}} \\ \cline{2-5}
+         & 16 & - & - & - \\ \cline{2-5}
+    \end{tabular}
+    \caption{Podstawowa inwentaryzacja zasobów przedsiębiorstwa}
+    \label{tab:inwentaryzacja_zasobow}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|} \hline
+         \specialcellbold{Rodzaj zasobu} & \specialcellbold{Liczba} \\ \hline
+         Komputer & 188 \\ \hline
+         Drukarka & 7 \\ \hline
+         Kamery IP & 26 \\ \hline
+         Roboty & 16 \\ \hline 
+    \end{tabular}
+    \caption{Obecne zasoby firmy}
+    \label{tab:zasoby_firmy}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|} \hline
+        \specialcellbold{Rodzaj programu} & \specialcellbold{Przykład} \\ \hline
+        Przeglądarka internetowa & Mozilla Firefox, Google Chrome \\ \hline
+        Komunikator & Discord, HipChat \\ \hline
+        Klient FTP & FileZilla, Cyberduck \\ \hline
+        VoIP & Discord, HipChat  \\ \hline
+        Wideokonferencja & Zoom, Google Hangouts \\ \hline
+    \end{tabular}
+    \caption{Aplikacje wykorzystywane w firmie}
+    \label{tab:aplikacje_w_firmie}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|c|} \hline
+        \specialcellbold{Oznaczenie} & \specialcellbold{Lokalizacja} & \specialcellbold{Podłączone punkty abonencie} \\ \hline
+        MDF  & Budynek A, Parter   & Budynek A, Parter \\ \hline
+        IDF1 & Budynek A, Piętro 1 & Budynek A, Piętro 1 \\ \hline
+        IDF2 & Budynek A, Piętro 2 & Budynek A, Piętro 2 \\ \hline
+        IDF3 & Budynek B, Parter   & Budynek B \\ \hline
+    \end{tabular}
+    \caption{Punkty dystrybucyjne}
+    \label{tab:punkty_dystrybucyjne}
+\end{table}
+
+\section{Analiza potrzeb użytkowników}
+
+\begin{table}
+    \centering
+    \begin{tabular}{c|c|c|c|c|} \cline{2-5}
+        & \multicolumn{4}{c|}{\specialcellbold{Transfer (down/up), kb/s}} \\ \hline
+        \multicolumn{1}{|c|}{\specialcellbold{Użytkownik/\\Aplikacja}} & \specialcellbold{Przeglądarka} & \specialcellbold{Praca w \\ chmurze} & \specialcellbold{Komunikator} & \specialcellbold{Wideorozmowy} \\ \hline
+        \multicolumn{1}{|c|}{Zarząd i kadry} & 80/15 & 23/36 & 15/15 & 40/40 \\ \hline
+        \multicolumn{1}{|c|}{\specialcell{Programiści \\i testerzy}} & 110/10 & 30/53 & 15/15 & 40/40 \\ \hline
+        \multicolumn{1}{|c|}{Administratorzy} & 100/20 & 20/30 & 15/15 & 10/10 \\ \hline
+        \multicolumn{1}{|c|}{Sieć gości} & 20/10 & 5/5 & 5/5 & - \\ \hline
+    \end{tabular}
+    \caption{Przepływ danych jednego użytkownika z/do Internetu}
+    \label{tab:transfer_osoba_internet}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|} \hline
+        \multirow{2}{*}{\specialcellbold{Punkt\\dystrybucyjny}} & \multicolumn{2}{c|}{\specialcellbold{Grupa robocza}} & \multicolumn{4}{c|}{\specialcellbold{Internet (kb/s)}} \\ \cline{2-7}
+        & \specialcellbold{Nazwa} & \specialcellbold{Ilość\\stanowisk} & DOWN & UP & \specialcell{UP\\łącznie} & \specialcell{DOWN\\łącznie} \\ \hline
+        \multirow{5}{*}{MDF}
+        & Zarząd i kadry                        & - & 158 & 106 &   - &   - \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy} & - & 195 & 118 &   - &   - \\ \cline{2-7}
+        & Administratorzy                       & 4 & 145 &  75 & 580 & 300 \\ \cline{2-7}
+        & Sieć gości                            & - &  30 &  20 &   - &   - \\ \cline{2-7}
+        & Łącznie                               & 4 & - & - & 580 & 300 \\ \hline
+        
+        \multirow{5}{*}{IDF1}
+        & Zarząd i kadry                        & 16 & 158 & 106 & 2528 & 1696 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy} & 31 & 195 & 118 & 6045 & 3658 \\ \cline{2-7}
+        & Administratorzy                       & - & 145 & 75 & - & - \\ \cline{2-7}
+        & Sieć gości                            & - & 30 & 20 & - & - \\ \cline{2-7}
+        & Łącznie                               & 4 & - & - & 8573 & 5354 \\ \hline
+        
+        \multirow{5}{*}{IDF2}
+        & Zarząd i kadry                        & 6 & 158 & 106 & 948 & 636 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy} & 49 & 195 & 118 & 9555 & 5782 \\ \cline{2-7}
+        & Administratorzy                       & - & 145 & 75 & - & - \\ \cline{2-7}
+        & Sieć gości                            & - & 30 & 20 & - & - \\ \cline{2-7}
+        & Łącznie                               & 4 & - & - & 10503 & 6418 \\ \hline
+        
+        \multirow{5}{*}{IDF3}
+        & Zarząd i kadry                        & 12 & 158 & 106 & 1896 & 1272 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy} & 68 & 195 & 118 & 13260 & 8024 \\ \cline{2-7}
+        & Administratorzy                       & 2 & 145 & 75 & 290 & 150 \\ \cline{2-7}
+        & Sieć gości                            & - & 30 & 20 & - & - \\ \cline{2-7}
+        & Łącznie                               & 4 & - & - & 15446 & 9446 \\ \hline
+    \end{tabular}
+    \caption{Transfer danych z/do Internetu}
+    \label{tab:transfer_internet}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|} \hline
+        \multirow{2}{*}{\specialcellbold{Punkt\\dystrybucyjny}} & \multicolumn{2}{c|}{\specialcellbold{Grupa robocza}} & \multicolumn{4}{c|}{\specialcellbold{Serwer plików 1 (kb/s)}} \\ \cline{2-7}
+        & \specialcellbold{Nazwa} & \specialcellbold{Ilość\\stanowisk} & DOWN & UP & \specialcell{UP\\łącznie} & \specialcell{DOWN\\łącznie} \\ \hline
+        \multirow{2}{*}{MDF}
+        & Administratorzy   &  4 & 8000 &  600 & 32000 &  2400 \\ \cline{2-7}
+        & Kamery            &  8 &  110 & 2800 &   880 & 22400 \\ \cline{2-7}
+        & Łącznie           & 12 & - & - & 32880 & 24800 \\ \hline
+        
+        \multirow{2}{*}{IDF1}
+        & Administratorzy   & - & 8000 &  600 &   - &     - \\ \cline{2-7}
+        & Kamery            & 5 &  110 & 2800 & 550 & 14000 \\ \cline{2-7}
+        & Łącznie           & 5 & - & - & 550 & 14000 \\ \hline
+        
+        \multirow{2}{*}{IDF2}
+        & Administratorzy   & - & 8000 &  600 &   - &     - \\ \cline{2-7}
+        & Kamery            & 5 &  110 & 2800 & 550 & 14000 \\ \cline{2-7}
+        & Łącznie           & 5 & - & - & 550 & 14000 \\ \hline
+        
+        \multirow{2}{*}{IDF3}
+        & Administratorzy   & 2 & 8000 &  600 & 16000 &  1200 \\ \cline{2-7}
+        & Kamery            & 8 &  110 & 2800 &   880 & 22400 \\ \cline{2-7}
+        & Łącznie           & 5 & - & - & 16880 & 23400 \\ \hline
+        
+    \end{tabular}
+    \caption{Transfer danych z/do serwera plików 1}
+    \label{tab:transfer_serwer_1}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|} \hline
+        \multirow{2}{*}{\specialcellbold{Punkt\\dystrybucyjny}} & \multicolumn{2}{c|}{\specialcellbold{Grupa robocza}} & \multicolumn{4}{c|}{\specialcellbold{Serwer plików 2 (kb/s)}} \\ \cline{2-7}
+        & \specialcellbold{Nazwa} & \specialcellbold{Ilość\\stanowisk} & DOWN & UP & \specialcell{UP\\łącznie} & \specialcell{DOWN\\łącznie} \\ \hline
+        
+        \multirow{4}{*}{MDF}
+        & Zarząd i kadry                            & - & 600 & 550 &    - &    - \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & - & 700 & 590 &    - &    - \\ \cline{2-7}
+        & Administratorzy                           & 4 & 800 & 300 & 3200 & 1200 \\ \cline{2-7}
+        & Łącznie                                   & 4 & 800 & 300 & 3200 & 1200 \\ \hline
+        
+        \multirow{4}{*}{IDF1}
+        & Zarząd i kadry                            &  6 & 600 & 550 &  3600 &  3300 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & 49 & 700 & 590 & 34300 & 28910 \\ \cline{2-7}
+        & Administratorzy                           &  - & 800 & 300 &     - &     - \\ \cline{2-7}
+        & Łącznie                                   & 55 &   - &   - & 37900 & 32210 \\ \hline
+        
+        \multirow{4}{*}{IDF2}
+        & Zarząd i kadry                            & 16 & 600 & 550 &  9600 &  8800 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & 31 & 700 & 590 & 21700 & 18290 \\ \cline{2-7}
+        & Administratorzy                           &  - & 800 & 300 &     -  &     - \\ \cline{2-7}
+        & Łącznie                                   & 47 &   - &   - & 31300 & 32210 \\ \hline
+        
+        \multirow{4}{*}{IDF3}
+        & Zarząd i kadry                            & 12 & 600 & 550 &  7200 &  6600 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & 68 & 700 & 590 & 47600 & 40120 \\ \cline{2-7}
+        & Administratorzy                           & 2  & 800 & 300 &  1600 &   600 \\ \cline{2-7}
+        & Łącznie                                   & 82 & -   & -   & 31300 & 32210 \\ \hline
+        
+    \end{tabular}
+    \caption{Transfer danych z/do serwera plików 2}
+    \label{tab:transfer_serwer_2}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|} \hline
+        \multirow{2}{*}{\specialcellbold{Punkt\\dystrybucyjny}} & \multicolumn{2}{c|}{\specialcellbold{Grupa robocza}} & \multicolumn{4}{c|}{\specialcellbold{Serwer WWW (kb/s)}} \\ \cline{2-7}
+        & \specialcellbold{Nazwa} & \specialcellbold{Ilość\\stanowisk} & DOWN & UP & \specialcell{UP\\łącznie} & \specialcell{DOWN\\łącznie} \\ \hline
+        
+        \multirow{4}{*}{MDF}
+        & Zarząd i kadry                            & - & 330 & 440 &   - &   - \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & - & 380 & 430 &   - &   - \\ \cline{2-7}
+        & Administratorzy                           & 4 & 380 & 390 & 1520 & 1560 \\ \cline{2-7}
+        & Łącznie                                   & 4 &   - &   - & 1520 & 1560 \\ \hline
+        
+        \multirow{4}{*}{IDF1}
+        & Zarząd i kadry                            &  6 & 230 &  45 &  1380 &  270 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & 49 & 190 &  35 &  9310 & 1715 \\ \cline{2-7}
+        & Administratorzy                           &  - & 210 &  60 &     - &    - \\ \cline{2-7}
+        & Łącznie                                   & 55 &   - &   - & 10690 & 1985 \\ \hline
+        
+        \multirow{4}{*}{IDF2}
+        & Zarząd i kadry                            & 16 & 230 &  45 &  5280 &  7040 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & 31 & 190 &  35 & 11780 & 13330 \\ \cline{2-7}
+        & Administratorzy                           &  - & 210 &  60 &     - &     - \\ \cline{2-7}
+        & Łącznie                                   & 47 &   - &   - & 17060 & 20370 \\ \hline
+        
+        \multirow{4}{*}{IDF3}
+        & Zarząd i kadry                            & 12 & 230 &  45 &  3960 &  5280 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & 68 & 190 &  35 & 25840 & 29240 \\ \cline{2-7}
+        & Administratorzy                           &  2 & 210 &  60 &   760 &   780 \\ \cline{2-7}
+        & Łącznie                                   & 82 &   - &   - & 30560 & 35300 \\ \hline
+        
+    \end{tabular}
+    \caption{Transfer danych z/do serwera WWW}
+    \label{tab:transfer_serwer_www}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|} \hline
+        \multirow{2}{*}{\specialcellbold{Punkt\\dystrybucyjny}} & \multicolumn{2}{c|}{\specialcellbold{Grupa robocza}} & \multicolumn{4}{c|}{\specialcellbold{Serwer pocztowy (kb/s)}} \\ \cline{2-7}
+        & \specialcellbold{Nazwa} & \specialcellbold{Ilość\\stanowisk} & DOWN & UP & \specialcell{UP\\łącznie} & \specialcell{DOWN\\łącznie} \\ \hline
+        
+        \multirow{4}{*}{MDF}
+        & Zarząd i kadry                            & - & 230 &  45 &   - &   - \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & - & 190 &  35 &   - &   - \\ \cline{2-7}
+        & Administratorzy                           & 4 & 210 &  60 & 840 & 240 \\ \cline{2-7}
+        & Łącznie                                   & 4 &   - &   - & 840 & 240 \\ \hline
+        
+        \multirow{4}{*}{IDF1}
+        & Zarząd i kadry                            &  6 & 230 &  45 &  1380 &  270 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & 49 & 190 &  35 &  9310 & 1715 \\ \cline{2-7}
+        & Administratorzy                           &  - & 210 &  60 &     - &    - \\ \cline{2-7}
+        & Łącznie                                   & 55 &   - &   - & 10690 & 1985 \\ \hline
+        
+        \multirow{4}{*}{IDF2}
+        & Zarząd i kadry                            & 16 & 230 &  45 & 3680 &  720 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & 31 & 190 &  35 & 5890 & 1085 \\ \cline{2-7}
+        & Administratorzy                           &  - & 210 &  60 &    - &    - \\ \cline{2-7}
+        & Łącznie                                   & 47 &   - &   - & 9570 & 1805 \\ \hline
+        
+        \multirow{4}{*}{IDF3}
+        & Zarząd i kadry                            & 12 & 230 &  45 &  2760 &  540 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & 68 & 190 &  35 & 12920 & 2380 \\ \cline{2-7}
+        & Administratorzy                           &  2 & 210 &  60 &   420 &  120 \\ \cline{2-7}
+        & Łącznie                                   & 82 &   - &   - & 16100 & 3040 \\ \hline
+        
+    \end{tabular}
+    \caption{Transfer danych z/do serwera pocztowy}
+    \label{tab:transfer_serwer_pocztowy}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|} \hline
+        \multirow{2}{*}{\specialcellbold{Punkt\\dystrybucyjny}} & \multicolumn{2}{c|}{\specialcellbold{Grupa robocza}} & \multicolumn{4}{c|}{\specialcellbold{Drukarka}} \\ \cline{2-7}
+        & \specialcellbold{Nazwa} & \specialcellbold{Ilość\\stanowisk} & DOWN & UP & \specialcell{UP\\łącznie} & \specialcell{DOWN\\łącznie} \\ \hline
+        
+        \multirow{4}{*}{MDF}
+        & Zarząd i kadry                            & - & 10 &  180 &  - &   - \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & - & 10 &  170 &  - &   - \\ \cline{2-7}
+        & Administratorzy                           & 4 & 10 &  175 & 40 & 700 \\ \cline{2-7}
+        & Łącznie                                   & 4 &  - &    - & 40 & 700 \\ \hline
+        
+        \multirow{4}{*}{IDF1}
+        & Zarząd i kadry                            &  6 & 10 &  180 &  60 & 1080 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & 49 & 10 &  170 & 490 & 8330 \\ \cline{2-7}
+        & Administratorzy                           &  - & 10 &  175 &   - &    - \\ \cline{2-7}
+        & Łącznie                                   & 55 &   - &   - & 550 & 9410 \\ \hline
+        
+        \multirow{4}{*}{IDF2}
+        & Zarząd i kadry                            & 16 & 10 &  180 & 160 & 2880 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & 31 & 10 &  170 & 310 & 5270 \\ \cline{2-7}
+        & Administratorzy                           &  - & 10 &  175 &   - &    - \\ \cline{2-7}
+        & Łącznie                                   & 47 &   - &   - & 470 & 8150 \\ \hline
+        
+        \multirow{4}{*}{IDF3}
+        & Zarząd i kadry                            & 12 & 10 & 180 & 120 &  2160 \\ \cline{2-7}
+        & \specialcell{Programiści\\i testerzy}     & 68 & 10 & 170 & 680 & 11560 \\ \cline{2-7}
+        & Administratorzy                           &  2 & 10 & 175 &  20 &   350 \\ \cline{2-7}
+        & Łącznie                                   & 82 &  - &   - & 820 & 14070 \\ \hline
+        
+    \end{tabular}
+    \caption{Transfer danych z/do drukarki}
+    \label{tab:transfer_drukarka}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{c|c|c|c|} \cline{2-3}
+        & \multicolumn{2}{c|}{\specialcellbold{Internet (kb/s)}} \\ \cline{2-4}
+        & \specialcellbold{Down} & \specialcellbold{Up} & \specialcellbold{Sesje} \\ \hline
+        \multicolumn{1}{|c|}{Serwer WWW}      &  80 & 170 & 96 \\ \hline
+        \multicolumn{1}{|c|}{Serwer pocztowy} & 890 & 410 & 12 \\ \hline
+    \end{tabular}
+    \caption{Transfer danych pomiędzy serwerami i Internetem}
+    \label{tab:transfer_internet_serwery}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|} \hline
+        \multicolumn{2}{|c|}{\specialcellbold{Transfer danych (kb/s)}} \\ \hline
+        \specialcellbold{Down} & \specialcellbold{Up} \\ \hline
+        27200 & 27200 \\ \hline
+    \end{tabular}
+    \caption{Transfer danych pomiędzy sieciami laboratoryjną i biurową}
+    \label{tab:transfer_lab_biuro}
+\end{table}
+
+\section{Założenia projektowe}
+Założenia projektowe obejmują wdrożenie sieci w siedzibie firmy "G.I. Industries", która mieści się w dwóch budynkach połączonych kablem światłowodowym. Sieć będzie nowoczesna i łatwa w rozbudowie. W budynkach należących do przedsiębiorstwa zostało zainstalowane okablowanie strukturalne (kat.  6) wraz z niezbędnymi szafami teleinformatycznymi oraz wszystkie  urządzenia  końcowe (serwery,  drukarki, komputery,  kamery  IP,  itp.), które należy podłączyć do sieci.
+W budynkach znajdują się cztery punkty dystrybucyjne z szafami teleinformatycznymi, do których schodzą się kable z obsługiwanych przez nie gniazd z różnych pięter i budynków. Odległość pomiędzy punktem dystrybucyjnym MDF a punktami IDF w każdym budynku nie przekracza 90 metrów,  pomiędzy  MDF  a  wszystkimi  IDF  w  obrębie  każdego  budynku  zainstalowano  okablowanie miedziane (skrętka) kat. 6.
+\begin{itemize}
+    \item MDF - główny punkt dystrybucyjny zlokalizowany na parterze budynku A obsługuje ruch generowany przez 4 użytkowników,
+    \item IDF1 - pomocniczy punkt dystrybucyjny zlokalizowany na pierwszym piętrze budynku A obsługuje ruch generowany przez 55 użytkowników,
+    \item IDF2 - pomocniczy punkt dystrybucyjny znajdujący się na drugim piętrze budynku A obsługujący 47 użytkowników
+    \item IDF3 - pomocniczy punkt dystrybucyjny zlokalizowany na parterze budynku B obsługujący 82 użytkowników
+\end{itemize}
+Użytkownicy podzieleni są na 3 grupy robocze: administratorzy, programiści i testerzy oraz zarząd i kadry.\bigskip\\
+Do punktów dystrybucyjnych należy także sprzęt należący do klienta:
+\begin{itemize}
+    \item serwer WWW,
+    \item serwer pocztowy,
+    \item serwer plików 1,
+    \item serwer plików 2,
+    \item 2 punkty dostępowe WiFi,
+    \item 7 drukarek,
+    \item 26 kamer IP,
+    \item 16 robotów.
+\end{itemize}
+Konieczna jest instalacja i konfiguracja serwerów, przełączników, routera oraz punktów dostępowych.
+
+Główne założenia projektowe:
+\begin{itemize}
+    \item Okablowanie poziome oraz szkieletowe znajdujące się wewnątrz budynków będzie wykonane w standardzie Gigabit Ethernet 1000Base-T (skrętka kat. 6),
+    \item Połączenie między budynkami będzie wykorzystywało kable światłowodowe jednomodowe,
+    \item Sieć będzie posiadać co najmniej 20\% wolnych portów na przełącznikach, aby umożliwić przyszłą rozbudowę spowodowaną wzrostem liczby pracowników,
+    \item Technologia VLAN pozwoli na ograniczenie ilości burz broadcastowych, zwiększenie bezpieczeństwa sieci oraz umożliwi logiczne grupowanie stacji końcowych, które są fizycznie rozproszone w sieci
+    \item Zapewnienie odpowiedniej konfiguracji sieci bezprzewodowej i kontroli dostępu oraz odseparowana sieci dla gości. Do szyfrowania sieci WiFi zostanie użyty standard szyfrowania WPA2-Enterprise,
+    \item Niezawodność połączenia z internetem zostanie zapewniona dzięki dzierżawie łączy od dwóch niezależnych od siebie operatorów
+    \item Serwery obsługujące ruch internetowy zostaną odizolowane w strefie DMZ, aby  w przypadku  włamania,  atakujący  nie  uzyskał  dostępu  do  całej  sieci komputerowej przedsiębiorstwa,
+    \item Ochrona  przed  dostępem do wewnętrznych zasobów z zewnątrz zostanie osiągnięta poprzez prywatną adresację,
+    \item Odporność na fizyczne uszkodzenia będzie zapewniony dzięki redundancji zasobów
+\end{itemize}
+
+\newpage
+\listoftables
+\end{document}
