@@ -1,0 +1,216 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{polski}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{chngpage}
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{minted}
+
+\setminted{
+    linenos=true,
+    autogobble,
+    breaklines,
+    frame=lines,
+    framerule=1pt,
+    framesep=10pt
+}
+
+\newenvironment{longlisting}{}{}
+
+\makeatletter
+\newcommand{\linia}{\rule{\linewidth}{0.4mm}}
+\renewcommand{\maketitle}{\begin{titlepage}
+    \vspace*{1cm}
+    \begin{center}\small
+    Politechnika Wrocławska\\
+    Wydział Elektroniki\\
+    Urządzenia Peryferyjne
+    \end{center}
+    \vspace{3cm}
+    \noindent\linia
+    \begin{center}
+      \LARGE \textsc{\@title}
+         \end{center}
+     \linia
+    \vspace{0.5cm}
+    \begin{flushright}
+    \begin{minipage}{7cm}
+    \textit{\small Autor:}\\
+    \normalsize \textsc{\@author} \par
+    \end{minipage}
+    \vspace{5cm}
+
+     {\small środa, 14\textsuperscript{15}-17\textsuperscript{15} TN}\\
+        Mgr inż. Kamil Szyc
+     \end{flushright}
+    \vspace*{\stretch{6}}
+    \begin{center}
+    \@date
+    \end{center}
+  \end{titlepage}
+}
+\makeatother
+\author{225942 Justyna Skalska \\
+        226126 Grzegorz Kopacz}
+\title{\textbf{Urządzenia peryferyjne}\\
+\normalsize{Sterowaniem silnikiem krokowym za pomocą USB}}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\newpage
+
+\section{Opis zadania}
+Podczas zajęć laboratoryjnych mieliśmy zapoznać się ze sposobami sterowania silnikiem krokowym za pomocą USB. Pierwszym zadaniem było obrócenie wirnika o 360 stopni. Następnie trzeba było zmodyfikować napisany wcześniej program, tak aby wirnik wykonał jeden obrót w zdanym przez użytkownika czasie. Ostatnim zadaniem było dostosowanie prędkości obrotu wirnika do zadanej przez użytkownika oraz sprawienie, że wirnik nie startuje z wybraną prędkością lecz przyśpiesza do niej, aby uniknąć problemów z nagłym startem. 
+
+\section{Wstęp} 
+Silnik krokowy jest to silnik elektryczny, w którym impulsowe zasilanie prądem elektrycznym powoduje, że jego wirnik nie obraca się ruchem ciągłym, lecz wykonuje każdorazowo ruch obrotowy o ściśle określony kąt. Ze względu na typ budowy silniki krokowe można podzielić na: silnik z magnesem trwałym, silnik o zmiennej reluktancji oraz silnik hybrydowy. 
+Podczas laboratorium nasze urządzenie było połączone z komputerem za pomocą portu USB. Za konwersje standardu USB na 8 bitową linię odpowiedzialny jest układ firmy FTDI o symbolu FT245BM. Do wyjścia tego układu, które ma postać 8 bitowej szyny dołączony jest układ ULN2803A.\cite{lab}
+
+\section{Zadanie}
+Kod został wykonany przy użyciu języka C\#. Silnik został podłączony do portu USB. Z przyczyn technicznych nie jestem w stanie zamieścić zdjęcia interfejsu wykonanej aplikacji. Posiadała ona jednak przyciski pozwalające wykonać obrót o zadany kąt oraz w zadanym czasie. Znajdował się tam także slider, dzięki któremu można było wybrać prędkość obrotu wirnika. Można go było wystartować oraz zatrzymać dzięki dodatkowym 2 przyciskom.
+\newline
+\newline
+
+\begin{listing}
+\caption{Zmienne globalne}
+\begin{minted}{csharp}
+// liczba wysłanych bitów
+public UInt32 WrittenBytesCount = 0;
+// bity pozwalające obrócić wirnik w prawo
+public byte[] stepRightBytes = { 0x01, 0x08, 0x02, 0x04 };
+// bity pozwalające obrócić wirnik w lewo
+public byte[] stepLeftBytes = { 0x04, 0x02, 0x08, 0x01 };
+// bity pozwalające rozłączyć się z urządzeniem
+public byte[] disconnectBytes = { 0x00 };
+// indeks wysłanych bitów
+public int index = 0;
+// procent prędkości maksymalnej wybranej przez użytkownika
+public int speedPercentage = 0;
+\end{minted}
+\label{lst:global}
+\end{listing}
+
+\begin{listing}[H]
+\caption{Funkcja do łączenia się z urządzeniem}
+\begin{minted}{csharp}
+public void connect() {
+    UInt32 deviceCount = 0;
+    Device = new FTDI();
+    Device.GetNumberOfDevices(ref deviceCount);
+    FTDI.FT_DEVICE_INFO_NODE[] deviceList = new FTDI.FT_DEVICE_INFO_NODE[deviceCount];
+    Device.GetDeviceList(deviceList);
+    Console.WriteLine("Device count: " + deviceList.Length);
+    Device.OpenBySerialNumber(deviceList[0].SerialNumber);
+    Device.SetBitMode(0xff, 1);
+    foreach (FTDI.FT_DEVICE_INFO_NODE d in deviceList) {
+        Console.WriteLine("Device name: " + d.Description);
+        Console.WriteLine("Device serial number: " + d.SerialNumber);
+    }
+}
+\end{minted}
+\label{lst:connect}
+\end{listing}
+
+\begin{listing}[H]
+\caption{Funkcja do odłączania urządzenia}
+\begin{minted}{csharp}
+public void disconnect() {
+    WrittenBytesCount = 0;
+    Int32 bytesToWrite = 1;
+    Device.Write(disconnectBytes, bytesToWrite, ref WrittenBytesCount);
+    Console.WriteLine("Device disconnected!");
+}
+\end{minted}
+\label{lst:disconnect}
+\end{listing}
+
+\begin{listing}[H]
+\caption{Funkcja wysyłania bitów do urządzenia}
+\begin{minted}{csharp}
+public void writeBytes(int speed, byte[] bytes) {
+    byte[] x = { bytes[index % 4] };
+    Device.Write(x, bytesToWrite, ref WrittenBytesCount);
+    Thread.Sleep(speed);
+    index++;
+}
+\end{minted}
+\label{lst:write_bytes}
+\end{listing}
+
+\begin{listing}[H]
+\caption{Funkcja wykonująca zadaną liczbę kroków wirnika}
+\begin{minted}{csharp}
+// obliczanie liczby kroków na obrót
+var stepsCount = (int)(360 / 7.5f);
+// obliczanie prędkości jednego obrotu
+var timeout = (int)(5 * 1000 / stepsCount);
+            
+public void step(int count, int speed, byte[] bytes) {
+    WrittenBytesCount = 0;
+    for (int i = 0; i < count; i++) {
+        writeBytes(speed, bytes);
+    }
+}
+\end{minted}
+\label{lst:step}
+\end{listing}
+
+\begin{listing}[H]
+\caption{Funkcja wykonująca kroki wirnika przez określony czas}
+\begin{minted}{csharp}
+public void stepTimed(int time, int speed, byte[] bytes) {
+    WrittenBytesCount = 0;
+
+    Stopwatch timer = new Stopwatch();
+    timer.Start();
+    while (timer.Elapsed.TotalSeconds < time) {
+        writeBytes(speed, bytes);
+    }
+    timer.Stop();
+}
+\end{minted}
+\label{lst:step_timed}
+\end{listing}
+
+\begin{listing}[H]
+\caption{Funkcja odpowiedzialna za obracanie wirnika z wybraną prędkością i pozwalająca na jego zatrzymanie}
+\begin{minted}{csharp}
+private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e) {
+    BackgroundWorker worker = sender as BackgroundWorker;
+    int minSpeed = 205;
+    int maxSpeed = 5;
+    int chosenSpeed = (int)(minSpeed - (((minSpeed - maxSpeed) * ch.speedPercentage) / 100));
+    int speedStep = 10;
+    int speed = minSpeed;
+
+    while (true) {
+        if (worker.CancellationPending == true) {
+            e.Cancel = true;
+            break;
+        } else {
+            ch.writeBytes(speed, ch.stepRightBytes);
+            if (speed > maxSpeed) {
+                speed -= speedStep;
+            }
+        }
+    }
+
+    ch.WrittenBytesCount = 0;
+}
+\end{minted}
+\label{lst:background_worker}
+\end{listing}
+
+\section{Wnioski}
+To ćwiczenie pozwoliło nam zapoznać się z podstawami obsługi silnika krokowego poprzez port USB. Okazało się to być stosunkowo prostym i przyjemnym zadaniem. Wiedza na ten temat może przydać się przy tworzeniu różnego rodzaju urządzeń, np. napędów DVD oraz drukarek, a także w szeroko rozumianej automatyce.
+\newpage
+
+\listoflistings
+\bibliographystyle{unsrt}
+\bibliography{references}
+\end{document}
