@@ -1,0 +1,259 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{polski}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{chngpage}
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{minted}
+
+\setminted{
+    linenos=true,
+    autogobble,
+    breaklines,
+    frame=lines,
+    framerule=1pt,
+    framesep=10pt
+}
+
+\newenvironment{longlisting}{}{}
+
+\makeatletter
+\newcommand{\linia}{\rule{\linewidth}{0.4mm}}
+\renewcommand{\maketitle}{\begin{titlepage}
+    \vspace*{1cm}
+    \begin{center}\small
+    Politechnika Wrocławska\\
+    Wydział Elektroniki\\
+    Urządzenia Peryferyjne
+    \end{center}
+    \vspace{3cm}
+    \noindent\linia
+    \begin{center}
+      \LARGE \textsc{\@title}
+         \end{center}
+     \linia
+    \vspace{0.5cm}
+    \begin{flushright}
+    \begin{minipage}{7cm}
+    \textit{\small Autor:}\\
+    \normalsize \textsc{\@author} \par
+    \end{minipage}
+    \vspace{5cm}
+
+     {\small środa, 14\textsuperscript{15}-17\textsuperscript{15} TN}\\
+        Mgr inż. Kamil Szyc
+     \end{flushright}
+    \vspace*{\stretch{6}}
+    \begin{center}
+    \@date
+    \end{center}
+  \end{titlepage}
+}
+\makeatother
+\author{Justyna Skalska, 225942}
+\title{\textbf{Urządzenia peryferyjne}\\
+\normalsize{Drukarki atramentowe. Język PCL. Drukowanie w kolorach}}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\newpage
+
+\section{Opis zadania}
+Podczas zajęć laboratoryjnych miałam zapoznać się z językiem PCL oraz w jaki sposób łączyć się i przesyłać dane do drukarki atramentowej znajdującej się w laboratorium. Urządzenie było połączone z komputerem za pomocą portu szeregowego. Pierwszym zadaniem było wydrukowanie prostego tekstu. Następnym krokiem było sformatowanie drukowanego tekstu poprzez zmianę czcionki, jej rozmiaru oraz stylu. Ostatnim zadaniem było wydrukowanie kolorowej bitmapy, ale zabrakło mi czasu na jego wykonanie.
+
+\section{Wstęp} 
+PCL (ang. Printer Command Language) jest to język opisu strony (PDL - Page Description Language) opracowany w latach 70. przez firmę Hewlett-Packard. Pierwotnie został opracowany dla wczesnych drukarek atramentowych. Dzisiaj służy on do obsługi drukarek atramentowych  jak i laserowych.\citep{wiki}\bigskip\\
+Kod kontrolny jest to znak, który inicjuje funkcje drukarki(np. Carriage Return (CR), Line Feed (LF), Form Feed (FF), itp.). Polecenia PCL zapewniają dostęp do struktury sterowania PCL drukarki. Kontroluje ona wszystkie funkcje drukarki, z wyjątkiem tych używanych do grafiki wektorowej, która jest kontrolowana przez polecenia HP-GL/2. Polecenia PCL (inne niż jednoliterowe kody kontrolne) są również nazywane "sekwencjami specjalnymi". Taka budowa pozwala na łatwy dostęp poprzez wysokopoziomowe języki programowania, co doprowadziło do upowszechniania standardu PCL. Dzięki czemu został on standardem branżowym. Gdy polecenie PCL ustawi jakąś funkcję drukarki zmiana nastąpi tylko wtedy, gdy komenda zostanie ponownie wykonana z nową wartością lub drukarka zostanie przywrócona do ustawień domyślnych. Innymi słowy funkcja zostaje włączona, a następnie wyłączona.
+
+\begin{table}[H]
+    \centering
+    \caption{Składnia komendy dwubajtowej}
+    \begin{tabular}{|c|c|}
+        \hline
+        $E_{c}$ & X \\
+       \hline
+    \end{tabular}
+    \label{tab:two_byte_command}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption{Składnia komendy z parametrami}
+    \begin{tabular}{|c|c|c|c|c|c|}
+        \hline
+        $E_{c}$ & X & y & \# & L & data \\
+        \hline
+    \end{tabular}
+    \label{tab:parameter_command}
+\end{table}
+
+\begin{itemize}
+    \item $E_{c}$ - znak ucieczki o kodzie ASCII 27,
+    \item X - parametr o kodzie ASCII z zakresu od 33 do 47 dla komend z parametrami albo jeden ze znaków 'E', '9', '=', 'Y', 'Z',
+    \item y - grupa o kodzie ASCII z zakresu od 96 do 126 (obejmuje małe litery alfabetu oraz znaki '`', '\{', '$|$', '\}'),
+    \item \# - pole wartości, czyli zbiór znaków '0'-'9', '+', '-', '.'(ASCII 48-57) reprezentujący wartość numeryczną z zakresu -32767 do 65535. Domyślną wartością jest zero,
+    \item L - znak końca o kodzie ASCII z zakresu od 64 do 94 (wielka litera alfabetu)
+    \item data - opcjonalne pole zawierające dane binarne (pogrupowane po 8 bitów), które mogą posłużyć do opisu czcionek, grafiki rastrowej, itp.\citep{printerSpecs}
+\end{itemize}
+
+\section{Zadanie}
+Kod został wykonany przy użyciu języka C\#. Drukarka została podłączona do protu szeregowego LPT3, do którego komunikacja została napisana przy pomocy WinAPI. Z przyczyn technicznych nie jestem w stanie zamieścić zdjęcia interfejsu wykonanej aplikacji. Posiadała ona jednak jedno pole do wpisywania tekstu, pole wyboru stylu tekstu, dwie listy rozwijane pozwalające na wybór czcionki oraz wielkości tekstu, a także przycisk pozwalający drukować wpisany wcześniej tekst.
+\newline
+\newline
+
+\begin{listing}
+\caption{Klasa Printer}
+\end{listing}
+\begin{longlisting}
+\begin{minted}{csharp}
+public class Printer {
+    
+    public const short INVALID_HANDLE_VALUE = -1;
+    public const uint GENERIC_WRITE = 0x40000000;
+    public const uint OPEN_EXISTING = 3;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern IntPtr CreateFile(string lpFileName, uint dwDesiredAccess,
+        uint dwShareMode, IntPtr lpSecurityAttributes, uint dwCreationDisposition,
+        uint dwFlagsAndAttributes, IntPtr hTemplateFile);
+        
+    [DllImport("kernel32.dll")]
+    static extern int CloseHandle(IntPtr hObject);
+
+    public IntPtr ptr;
+    public FileStream lpt;
+    public Byte[] buffer;
+
+    //  port otwierany jest w trybie non-overlapped I/O, tylko do zapisu
+    void string LPTInit() {
+        // otwórz port
+        ptr = CreateFile("LPT3",
+        GENERIC_WRITE, // otwiera port dla danych wyjściowych
+        0,  // dzielenie portów wyłączone
+        IntPtr.Zero, // atrybuty bezpieczeństwa niepotrzebne
+        OPEN_EXISTING,  // otwiera plik/urządzenie jeśli istnieje
+        0,  // flagi pliku - synchroniczne IO
+        IntPtr.Zero);
+        
+        if (ptr.ToInt32() == INVALID_HANDLE_VALUE) {
+            AfxMessageBox("Cannot connect to LPT3 port!");
+        } else {
+            lpt = new FileStream(ptr, FileAccess.ReadWrite);
+            // bufor na przesłane komendy
+            buffer = new Byte[2048];
+        }
+    }
+    
+    // wyślij komendy do drukarki
+    public void sendTextToLPT3(string text) {
+        buffer = System.Text.Encoding.ASCII.GetBytes(text);
+        lpt.Write(buffer, 0, buffer.Length);
+    }
+    
+    // zamknij port
+    public void LptClose() {
+        if (ptr != INVALID_HANDLE_VALUE) {
+            CloseHandle(ptr);
+        }
+    }
+}
+\end{minted}
+\label{lst:printer_class}
+\end{longlisting}
+
+\newpage
+\begin{listing}
+\caption{Funkcja wywołana po naciśnięciu przycisku drukuj}
+\end{listing}
+\begin{longlisting}
+\begin{minted}{csharp}
+private void button1_Click(object sender, EventArgs e) {
+    // znak ucieczki
+    const char ESC = (char)27;
+    // start następnej strony (Form Feed)
+    const char FF = (char)12;
+    // reset drukarki
+    const string RESET_PRINTER = ESC + "E";
+    // zawijanie linii
+    const string WRAP_LINES = ESC + "&s0C";
+    // normalna jakość drukowania
+    const string NORMAL_QUALITY = ESC + "*o0M";
+    // format strony A4
+    const string A4_FORMAT = ESC + "&l26A";
+    // idź do piątej kolumny
+    const string COLUMN_5 = ESC + "&a5C";
+    // idź do czwartej linii
+    const string LINE_4 = ESC + "&a4R";
+    // ustaw zestaw znaków na ISO 8859/5 Latin 2
+    const string CHAR_ENCODING = ESC + "(2N";
+
+    // tekst wpisany do textboxa
+    string text = textBox1.Text;
+    // czcionka wybrana z listy rozwijanej
+    string selectedFont = comboBox1.Text;
+    // rozmiar czcionki wybrany z listy rozwijanej
+    string selectedSize = comboBox2.Text;
+
+    // wysłanie ustawień do drukarki
+    printer.sendTextToLPT3(RESET_PRINTER);
+    printer.sendTextToLPT3(WRAP_LINES);
+    printer.sendTextToLPT3(NORMAL_QUALITY);
+    printer.sendTextToLPT3(A4_FORMAT);
+    printer.sendTextToLPT3(COLUMN_5);
+    printer.sendTextToLPT3(LINE_4);
+    printer.sendTextToLPT3(CHAR_ENCODING);
+
+
+    if (selectedFont == "Arial") {
+        // ustaw czcionkę Arial
+        printer.sendTextToLPT3(ESC + "(s218T");     
+    }
+    else if (selectedFont == "Times New Roman") {
+        // ustaw czcionkę Times New Roman
+        printer.sendTextToLPT3(ESC + "(s517T");     
+    }
+    else if (selectedFont == "Courier") {
+        // ustaw czcionkę Courier
+        printer.sendTextToLPT3(ESC + "(s3T");       
+    }
+
+    if (checkedListBox1.GetItemCheckState(0) == CheckState.Checked) {
+        // ustaw pogrubioną czcionkę
+        printer.sendTextToLPT3(ESC + "(s3B");   
+    }
+    if (checkedListBox1.GetItemCheckState(1) == CheckState.Checked) {
+        // ustaw pochylenie tekstu
+        printer.sendTextToLPT3(ESC + "(s1S");
+    }
+    if (checkedListBox1.GetItemCheckState(2) == CheckState.Checked) {
+        // ustaw podkreślenie tekstu
+        printer.sendTextToLPT3(ESC + "&d3D");
+    }
+    if (selectedSize == "big") {
+        printer.sendTextToLPT3(ESC + "(s3H"); // ustaw dużą czcionkę
+    } else if (selectedSize == "small") {
+        printer.sendTextToLPT3(ESC + "(s10H");  // ustaw małą czcionkę
+    }
+
+    printer.sendTextToLPT3(text + FF);  // drukuj
+}
+\end{minted}
+\label{lst:print}
+\end{longlisting}
+
+\section{Wnioski}
+
+To ćwiczenie pozwoliło mi zapoznać się z podstawami języka PCL oraz dowiedzieć się jak drukować dane tekstowe przy użyciu wysokopoziomowych języków programowania. Język PCL
+okazał się dosyć prosty i elastyczny, jednak jego czytelność jest bardzo niska.
+Wiedza na temat łączenia oraz przesyłania danych do drukarki może się przydać, na przykład, do stworzenia oprogramowania sprzętu lub drukowania danych z aplikacji.
+\newpage
+
+\listoflistings
+\bibliographystyle{unsrt}
+\bibliography{references}
+\end{document}
