@@ -1,0 +1,633 @@
+\documentclass[12pt,a4paper,titlepage]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{polski}
+\usepackage{listings}
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{minted}
+\usepackage{amsmath,latexsym}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{pgfgantt}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+
+\usepackage[colorlinks = true,
+            linkcolor = black,
+            urlcolor  = blue,
+            citecolor = blue,
+            anchorcolor = blue]{hyperref}
+
+\pgfplotsset{compat=1.15} 
+
+\DeclareCaptionType{myequation}[][Równanie parametryczne]
+\captionsetup[myequation]{labelformat=empty}
+
+\makeatletter
+\newcommand{\linia}{\rule{\linewidth}{0.4mm}}
+\renewcommand{\maketitle}{\begin{titlepage}
+    \vspace*{1cm}
+    \begin{center}\small
+    Politechnika Wrocławska\\
+    Wydział Elektroniki\\
+    Programowanie Efektywnych Algorytmów
+    \end{center}
+    \vspace{3cm}
+    \noindent\linia
+    \begin{center}
+      \LARGE \textsc{\@title}
+         \end{center}
+     \linia
+    \vspace{0.5cm}
+    \begin{flushright}
+    \begin{minipage}{7cm}
+    \textit{\small Autor:}\\
+    \normalsize \textsc{\@author} \par
+    \end{minipage}
+    \vspace{5cm}
+
+     {\small Poniedziałek, 11\textsuperscript{15}-13\textsuperscript{00}}\\
+        Dr inż. Jarosław Rudy
+     \end{flushright}
+    \vspace*{\stretch{6}}
+    \begin{center}
+    \@date
+    \end{center}
+  \end{titlepage}
+}
+\makeatother
+\author{Justyna Skalska, 225942}
+\title{Problem Komiwojażera\\
+\large{(Przeszukiwanie tabu \& Symulowane wyżarzanie)}}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\newpage
+
+\section{Wstęp}
+\subsection{Cel projektu}
+Celem projektu było wykonanie programu wykorzystującego algorytmy przeszukiwania tabu (Tabu Search) oraz symulowanego wyżarzania (Simulated Annealing) do rozwiązania problemu komiwojażera (Travelling Salesman Problem).
+
+\subsection{Opis problemu}
+Problem komiwojażera należy do klasy problemów NP-trudnych i jest on zagadnieniem optymalizacyjnym, polegającym na znalezieniu minimalnego cyklu Hamiltona w pełnym grafie ważonym. Mówiąc prościej, rozwiązaniem problemu komiwojażera jest znalezienie najkrótszej ścieżki w grafie skierowanym, rozpoczynającej się w danym wierzchołku, odwiedzającej wszystkie wierzchołki dokładnie raz i kończącej się w wierzchołku początkowym. Ścieżka taka nazywa się optymalną trasą. Ponieważ nie ma znaczenia, gdzie zaczynamy, wierzchołek początkowy może być po prostu pierwszym wierzchołkiem w grafie. W wersji asynchronicznej, odległości pomiędzy wierzchołkami mogą dodatkowo zależeć także od kierunku przejścia pomiędzy nimi. Główną trudnością w rozwiązaniu problemu jest znacząca liczba możliwych kombinacji.
+
+\subsection{Opis instancji}
+Podczas testów wykorzystane zostały instancje zamieszczone na stronie \newline \href{https://www.iwr.uni-heidelberg.de/groups/comopt/software/TSPLIB95/}{TSPLIB}. Dane w nagłówku plików zapisane są za pomocą klucza i wartości. Najważniejsze w tym przypadku są "EDGE\_WEIGHT\_TYPE" oraz "EDGE\_WEIGHT\_FORMAT", dzięki którym wiemy w jakim formacie graf został zapisany w pliku. Sczytujemy liczbę wierzchołków używając klucza "DIMENSION", a dane o grafie pobieramy z sekcji znajdującej się pod "EDGE\_WEIGHT\_SECTION". Do pomiarów wykorzystano także instancje testowe ze \href{http://jaroslaw.mierzwa.staff.iiar.pwr.wroc.pl/pea-stud/tsp/}{strony doktora Jarosława Mierzwy}, które pozwalają zmierzyć czas wykonywania algorytmu dla liczby wierzchołków wykorzystanej przy testach algorytmu Branch \& Bound, Brute Force oraz Dynamic Programming. Dzięki temu mogę porównać działanie wszystkich napisanych dotychczas algorytmów. Każdy z tych plików zawiera liczbę wierzchołków grafu zamieszczoną w pierwszej linii oraz ich wagi przedstawione w postaci macierzy sąsiedztwa.
+
+\subsection{Specyfikacja techniczna}
+\subsubsection{Opis sprzętu}
+\begin{itemize}
+    \item System operacyjny: MacOS Mojave - wersja 10.14.1 (18B75),
+    \item Procesor: 2,2 GHz Intel Core i7-4770HQ,
+    \item Pamięć: 16 GB 1600 MHz DDR3,
+    \item IDE: CLion 2018.2.5
+\end{itemize}
+\subsubsection{Opis programu}
+\begin{itemize}
+    \item Program został wykonany obiektowo w języku C++,
+    \item Program akceptuje dane wczytywane z pliku, dla symetrycznego oraz asymetrycznego problemu komiwojażera,
+    \item Czas wykonania algorytmów mierzony był przy wykorzystaniu biblioteki std::chrono,
+    \item Do dynamicznego przechowywania danych została wykorzystana biblioteka std::vector oraz stworzona przeze mnie struktura TabuElement.
+\end{itemize}
+
+\begin{listing}[H]
+\caption{Struktura typu TabuElement}
+\begin{minted}[autogobble,xleftmargin=0.25\textwidth,xrightmargin=0.25\textwidth,linenos,breaklines,frame=lines,framerule=0.5pt,framesep=10pt]{C++}
+struct TabuElement {
+    int i;
+    int j;
+    int lifetime;
+};
+\end{minted}
+\end{listing}
+
+\section{Opis algorytmów}
+\subsection{Wstęp teoretyczny}
+Heurystyka jest techniką, która znajduje dobre rozwiązania przy akceptowalnych nakładach obliczeniowych, ale bez gwarancji osiągalności czy optymalności celu, czy nawet - w  wielu przypadkach – jak blisko optymalnego jest otrzymane rozwiązanie.\cite{agh}
+\\\\
+Metaheurystyka - ogólny algorytm (heurystyka) do rozwiązywania problemów obliczeniowych. Algorytm metaheurystyczny można używać do rozwiązywania dowolnego problemu, który można opisać za pomocą pewnych definiowanych przez ten algorytm pojęć. Algorytmy tego typu nie służą do rozwiązywania konkretnych problemów, a jedynie podają sposób na utworzenie odpowiedniego algorytmu.\cite{agh}
+
+\subsection{Tabu Search}
+\subsubsection{Opis teoretyczny}
+Przeszukiwanie tabu (ang. Tabu Search) jest to algorytm globalnej optymalizacji oraz metaheurystyka lub meta-strategia do kontrolowania osadzonej techniki heurystycznej, w celu eksploracji przestrzeni rozwiązań poza lokalne minimum. Celem algorytmu jest uniemożliwienie powrotu do ostatnio odwiedzonych obszarów wyszukiwania, aby uniknąć cykli. Strategia ta polega na zachowaniu w pamięci krótkoterminowej zmian o ostatnich ruchach w przestrzeni poszukiwań. Algorytm w każdej iteracji znajduje najlepsze rozwiązanie w sąsiedztwie i sprawdza czy dany wierzchołek nie został już wcześniej odwiedzony. Przeszukiwanie tabu jest więc w gruncie rzeczy deterministyczne, ale można je wzbogacić o elementy probabilistyczne.
+
+\begin{myequation}[H]
+\begin{equation}
+    \begin{split}
+    &N_{d}(x) = \dfrac{N(x)}{S_{T}} \\
+    &N(x) - \text{sąsiedztwo} \\
+    &S_{T} - \text{zbiór tabu}
+    \end{split}
+\end{equation}
+\caption{Równanie sąsiedztwa dynamicznego}
+\end{myequation}
+
+Algorytm Tabu Search to metoda przeszukiwania zbioru rozwiązań naśladująca proces poszukiwania wykonywany przez człowieka. Jej podstawowymi cechami są:
+\begin{itemize}
+    \item wybieranie lokalnie najlepszego rozwiązania,
+    \item omijanie już odwiedzonych wierzchołków.
+\end{itemize}
+
+\begin{table}[H]
+    \centering
+    \caption{Przykładowa lista tabu dla 5 wierzchołków z czasem istnienia}
+    \begin{tabular}{ccccc}
+         & 2 & 3 & 4 & 5  \\
+         \cline{2-5}
+         \multicolumn{1}{c|}{1} &  \multicolumn{1}{c|}{} &  \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{2}  & \multicolumn{1}{c|}{}\\
+         \cline{2-5}
+         & \multicolumn{1}{c|}{2}  &  \multicolumn{1}{c|}{} &  \multicolumn{1}{c|}{3} & \multicolumn{1}{c|}{}\\
+         \cline{3-5}
+         &   & \multicolumn{1}{c|}{3}  &  \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{}\\
+         \cline{4-5}
+         &   &   &  \multicolumn{1}{c|}{4} & \multicolumn{1}{c|}{1}\\
+         \cline{5-5}
+    \end{tabular}
+    \label{tab:my_label}
+\end{table}
+
+Wyszukiwanie tabu rozpoczyna się w taki sam sposób, jak zwykłe wyszukiwanie lokalne lub przeszukiwanie sąsiedztwa, postępując iteracyjnie od jednego punktu (rozwiązania) do drugiego, dopóki nie zostanie spełnione wybrane kryterium zakończenia. Każde rozwiązanie $x$ ma powiązane sąsiedztwo $N(x) \subset X$, a każde rozwiązanie $x' \in N(x)$ jest uzyskiwane z $x$ przez operację nazywaną ruchem.
+
+\subsubsection{Złożoność obliczeniowa}
+W najgorszym wypadku złożoność algorytmu wynosi $O(n^3)$, ponieważ duża liczność sąsiedztwa wymaga  znacznego  nakładu  obliczeniowego.
+Dla rozważanego  problemu złożoność obliczeniową można zredukować do $O(n^2)$ generując rozwiązania sąsiednie w takiej kolejności, aby  można było skorzystać z wyników  dla  wcześniej  wygenerowanych rozwiązań.\cite{zeszyty_naukowe}
+
+\subsubsection{Pseudokod}
+\begin{algorithm}[H]
+\caption{Pseudokod dla przeszukiwania tabu\cite{wiki_ts}}
+\begin{algorithmic}
+\State $sBest \gets s0$
+\State $bestCandidate \gets s0$
+\State $tabuList \gets []$
+\State tabuList.push(s0)
+
+\While{$not$ $stoppingCondition$}
+	\State $sNeighborhood \gets getNeighbors(bestCandidate)$
+	\For{$sCandidate$ \textbf{in} $sNeighborhood$}
+		\If{$not$ $tabuList.contains(sCandidate)$ $and$ \\\qquad\qquad $cost(sCandidate)$ $>$ $cost(bestCandidate)$}
+			\State $bestCandidate \gets sCandidate$
+		\EndIf
+	\EndFor
+	\If{$cost(bestCandidate)$ $>$ $cost(sBest)$}
+		\State $sBest \gets bestCandidate$
+	\EndIf
+	\State $tabuList.push(bestCandidate)$
+	\If{$tabuList.size$ $>$ $maxTabuSize$}
+		\State $tabuList.removeFirst()$
+    \EndIf
+\EndWhile
+\State \Return $sBest$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Opis implementacji}
+Pierwszym krokiem algorytmu jest włączenie timera, który z góry narzuca czas trwania algorytmu. Wybrałam podejście czasowego ograniczenia nad ograniczeniem iteracji biorąc pod uwagę sugestię na stronie doktora Mierzwy. Typ ograniczenia może być w łatwy sposób przekształcony z jednego na drugi. Następnym krokiem jest znalezienie pierwszej permutacji przy użyciu algorytmu zachłannego, który za każdym razem przeszukuje wszystkich sąsiadów danego wierzchołka w poszukiwaniu minimalnej ścieżki do kolejnego punktu. Kolejne kroki będą wykonywać się do momentu, gdy timer osiągnie zadany na początku algorytmu czas. Pierwszym krokiem w pętli jest znalezienie nowego rozwiązania dla wybranego typu sąsiedztwa (zaimplementowano: swap, insert oraz invert). Jeśli jego ścieżka jest krótsza niż dotychczasowo znaleziona to nowa permutacja wierzchołków zostaje zapisana, a zmienna przechowująca liczbę iteracji bez zmiany najlepszej ścieżki jest resetowana do wartości początkowej (przyjęto 3-krotność liczby wierzchołków). W następnym kroku czasy istnienia elementów w liście tabu są zmniejszane o 1 i usuwane, gdy czas ten wynosi 0. Każdy element ma swoje "życie", które jest 2-krotnością liczby wierzchołków. Długość listy, która je zawiera jest także 2-krotnością liczby wierzchołków. Po redukcji czasu istnienia następuje dodanie sprawdzonego w poprzednich krokach elementu do list tabu. Nie będzie on brany pod uwagę, dopóki nie zostanie usunięty z listy. Ostatnim krokiem w pętli jest sprawdzenie czy włączona jest dywersyfikacja oraz czy liczba iteracji bez zmiany najlepszej ścieżki jest równa 0. W tym przepadku algorytm jest restartowany. Polega to na znalezieniu permutacji przy użyciu algorytmu zachłannego, gdzie drugi wierzchołek jest liczbą losową mniejszą niż całkowita liczba elementów w grafie. Dzięki zastosowaniu dywersyfikacji jesteśmy w stanie zmniejszyć ryzyko wystąpienia cykli.
+
+\subsection{Simulated Annealing}
+\subsubsection{Opis teoretyczny}
+Symulowane wyżarzanie jest algorytmem przybliżonym. Jest to rodzaj algorytmu przeszukującego przestrzeń alternatywnych rozwiązań problemu w celu wyszukania rozwiązań najlepszych. Sposób działania symulowanego wyżarzania nieprzypadkowo przypomina zjawisko wyżarzania w metalurgii. Jest to kontrolowane ogrzewanie i schładzanie materiału, aby zwiększyć jego rozmiar i jakość
+kryształów.  Algorytm jest algorytmem przybliżonym, tzn. dającym wyniki których jakość jest zależna od parametrów oraz od pewnego prawdopodobieństwa z którym akceptowane są gorsze rozwiązania.
+
+\subsubsection{Złożoność obliczeniowa}
+Algorytm ten przechodzi przez $O(log n)$ kroków temperatury. Dla każdej temperatury wyszukiwanie obejmuje $O(n)$ prób i zaakceptowanych zmian. Zmiana aktualnej trasy jest odrzucana w czasie $O(1)$. Jeśli zmiana została zaakceptowana, odwrócenie ścieżki obejmuje średnio wymianę $O(n)$ miast. W związku z tym środowisko czas wykonywania $T_{n}$ symulowanego wyżarzania ma złożoność:
+\begin{myequation}[H]
+\begin{equation}
+    \begin{split}
+    &T_{n} =O((n^2 + n)log n)) \\
+    \end{split}
+\end{equation}
+\end{myequation}
+
+\subsubsection{Pseudokod}
+\begin{algorithm}[H]
+\caption{Pseudokod dla symulowanego wyżarzania\cite{cleveralgorithms}}
+\begin{algorithmic}
+\Require $maxIterations$, $maxTemp$
+\State $sCurrent \gets s0$
+\State $sBest \gets sCurrent$
+\For{$i = 1$ \textbf{to} $maxIterations$}
+\State $solution \gets createNeighborSolution(sCurrent)$
+\State $currTemp \gets calculateTemperature(i, maxTemp)$
+\If{$cost(solution)$ $\leq$ $cost(sCurrent)$}
+\State $sCurrent \gets solution$
+\If{$cost(solution)$ $\leq$ $cost(sBest)$}
+\State $sBest \gets solution$
+\EndIf
+\ElsIf{$Exp(\frac{cost(sCurrent) - cost(solution}{currTemp})$ $>$ $Rand()$}
+\State $sCurrent \gets solution$
+\EndIf
+\EndFor
+\State \Return $sBest$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Opis implementacji}
+Pierwszym krokiem jest stworzenie permutacji wierzchołków w kolejności od pierwszego do ostatniego i przypisanie jej jako aktualnej, najkrótszej ścieżki. Następnie wykonuje się pętla, której warunkiem końca jest sytuacja kiedy temperatura spadnie do tak zwanego ustalonego zera absolutnego (w tym przypadku ustawione jako 0.0001). Kolejnym krokiem jest nalezienie nowego rozwiązania dla wybranego typu sąsiedztwa (zaimplementowano: swap, insert oraz invert) i pobranie długości tejże ścieżki. Jeśli jest ma ona mniejszą wartość niż aktualna najkrótsza ścieżka to ją zapisujemy. W przeciwnym wypadku istnieje możliwość wybrania gorszej ścieżki, gdy zachodzi nierówność przedstawiona poniżej(2). Następnie zmniejszam temperaturę mnożąc ją przez tempo schładzania, co jest ostatnim krokiem pętli.
+
+\begin{myequation}[H]
+\label{eq:t}
+\begin{equation}
+    \begin{split}
+    &e^\frac{shortestPathWeight - currentShortestPathWeight}{temperature} > gaussianRandomNumber \\
+    \end{split}
+\end{equation}
+\end{myequation}
+
+\section{Pomiary}
+Test zostanie wykonany dla 4 symetrycznych instancjach problemu komiwojażera, dla którego rozwiązanie optymalne jest znane. Dla każdej instancji problemu oraz zestawienia algorytmu z jego parametrami zostanie wykonane 10 pomiarów, które zostaną później uśrednione.
+
+Instancje dla symetrycznego problemu komiwojażera
+\begin{itemize}
+    \item Nazwa instancji: 17.txt
+    \begin{itemize}
+        \item Rozmiar: 17
+        \item Rozwiązanie optymalne: 39
+    \end{itemize}
+    \item Nazwa instancji: gr21.tsp
+    \begin{itemize}
+        \item Rozmiar: 21
+        \item Rozwiązanie optymalne: 2707
+    \end{itemize}
+    \item Nazwa instancji: gr48.tsp
+    \begin{itemize}
+        \item Rozmiar: 48
+        \item Rozwiązanie optymalne: 5046
+    \end{itemize}
+    \item Nazwa instancji: gr120.tsp
+    \begin{itemize}
+        \item Rozmiar: 120
+        \item Rozwiązanie optymalne: 6942
+    \end{itemize}
+\end{itemize}
+
+\subsection{Tabu Search}
+Algorytm został przetestowany dla czasu wykonywania wynoszącego 0.5s, 1s, 2s, 5s, 10s, 20s. Dywersyfikacja była włączona lub nie. Testowane sąsiedztwa to swap, insert oraz invert.
+
+\begin{table}[H]
+    \centering
+	{\begin{tabular}{|p{0.25\linewidth}p{0.19\linewidth}p{0.14\linewidth}p{0.18\linewidth}p{0.1\linewidth}|}
+		\hline
+        Czas wykonywania & Dywersyfikacja & Sąsiedztwo & Otrzymane rozwiązanie & Błąd \\
+		\hline
+        0.5s & wyłączona & swap & 39 & 0\% \\
+        1s & wyłączona & swap & 39 & 0\% \\
+        2s & wyłączona & swap & 39 & 0\% \\
+        5s & wyłączona & swap & 39 & 0\% \\
+        10s & wyłączona & swap & 39 & 0\% \\
+        20s & wyłączona & swap & 39 & 0\% \\
+        \hline
+        0.5s & włączona & swap & 39 & 0\% \\
+        1s & włączona & swap & 39 & 0\% \\
+        2s & włączona & swap & 39 & 0\% \\
+        5s & włączona & swap & 39 & 0\% \\
+        10s & włączona & swap & 39 & 0\% \\
+        20s & włączona & swap & 39 & 0\% \\
+		\hline
+		0.5s & wyłączona & insert & 39 & 0\% \\
+        1s & wyłączona & insert & 39 & 0\% \\
+        2s & wyłączona & insert & 39 & 0\% \\
+        5s & wyłączona & insert & 39 & 0\% \\
+        10s & wyłączona & insert & 39 & 0\% \\
+        20s & wyłączona & insert & 39 & 0\% \\
+        \hline
+        0.5s & włączona & insert & 39 & 0\% \\
+        1s & włączona & insert & 39 & 0\% \\
+        2s & włączona & insert & 39 & 0\% \\
+        5s & włączona & insert & 39 & 0\% \\
+        10s & włączona & insert & 39 & 0\% \\
+        		\hline
+		0.5s & wyłączona & invert & 39 & 0\% \\
+        1s & wyłączona & invert & 39 & 0\% \\
+        2s & wyłączona & invert & 39 & 0\% \\
+        5s & wyłączona & invert & 39 & 0\% \\
+        10s & wyłączona & invert & 39 & 0\% \\
+        20s & wyłączona & invert & 39 & 0\% \\
+        \hline
+        0.5s & włączona & invert & 39 & 0\% \\
+        1s & włączona & invert & 39 & 0\% \\
+        2s & włączona & invert & 39 & 0\% \\
+        5s & włączona & invert & 39 & 0\% \\
+        10s & włączona & invert & 39 & 0\% \\
+        20s & włączona & invert & 39 & 0\% \\
+        \hline
+	\end{tabular}}
+	\caption{Przeszukiwanie tabu dla instancji 17.txt}
+\end{table}
+\begin{table}[H]
+    \centering
+	{\begin{tabular}{|p{0.25\linewidth}p{0.19\linewidth}p{0.14\linewidth}p{0.18\linewidth}p{0.1\linewidth}|}
+		\hline
+        Czas wykonywania & Dywersyfikacja & Sąsiedztwo & Otrzymane rozwiązanie & Błąd \\
+		\hline
+        0.5s & wyłączona & swap & 3062 & 13\% \\
+        1s & wyłączona & swap & 3062 & 13\% \\
+        2s & wyłączona & swap & 3062 & 13\% \\
+        5s & wyłączona & swap & 2998 & 11\% \\
+        10s & wyłączona & swap & 2998 & 11\% \\
+        20s & wyłączona & swap & 2998 & 11\% \\
+        \hline
+        0.5s & włączona & swap & 2947 & 9\% \\
+        1s & włączona & swap & 2858 & 6\% \\
+        2s & włączona & swap & 2858 & 6\% \\
+        5s & włączona & swap & 2851 & 5\% \\
+        10s & włączona & swap & 2851 & 5\% \\
+        20s & włączona & swap & 2851 & 5\% \\
+		\hline
+		0.5s & wyłączona & insert & 2998 & 11\% \\
+        1s & wyłączona & insert & 2998 & 11\% \\
+        2s & wyłączona & insert & 2998 & 11\% \\
+        5s & wyłączona & insert & 2998 & 11\% \\
+        10s & wyłączona & insert & 2998 & 11\% \\
+        20s & wyłączona & insert & 2998 & 11\% \\
+        \hline
+        0.5s & włączona & insert & 2795 & 3\% \\
+        1s & włączona & insert & 2795 & 3\% \\
+        2s & włączona & insert & 2795 & 3\% \\
+        5s & włączona & insert & 2795 & 3\% \\
+        10s & włączona & insert & 2795 & 3\% \\
+        		\hline
+		0.5s & wyłączona & invert & 2998 & 11\% \\
+        1s & wyłączona & invert & 2998 & 11\% \\
+        2s & wyłączona & invert & 2998 & 11\% \\
+        5s & wyłączona & invert & 2998 & 11\% \\
+        10s & wyłączona & invert & 2998 & 11\% \\
+        20s & wyłączona & invert & 2998 & 11\% \\
+        \hline
+        0.5s & włączona & invert & 2795 & 3\% \\
+        1s & włączona & invert & 2795 & 3\% \\
+        2s & włączona & invert & 2795 & 3\% \\
+        5s & włączona & invert & 2795 & 3\% \\
+        10s & włączona & invert & 2795 & 3\% \\
+        20s & włączona & invert & 2795 & 3\% \\
+        \hline
+	\end{tabular}}
+	\caption{Przeszukiwanie tabu dla instancji gr21.tsp}
+\end{table}
+\begin{table}[H]
+    \centering
+	{\begin{tabular}{|p{0.25\linewidth}p{0.19\linewidth}p{0.14\linewidth}p{0.18\linewidth}p{0.1\linewidth}|}
+		\hline
+        Czas wykonywania & Dywersyfikacja & Sąsiedztwo & Otrzymane rozwiązanie & Błąd \\
+		\hline
+        0.5s & wyłączona & swap & 5908 & 17\% \\
+        1s & wyłączona & swap & 5908 & 17\% \\
+        2s & wyłączona & swap & 5705 & 13\% \\
+        5s & wyłączona & swap & 5652 & 12\% \\
+        10s & wyłączona & swap & 5652 & 12\% \\
+        20s & wyłączona & swap & 5652 & 12\% \\
+        \hline
+        0.5s & włączona & swap & 5670 & 12\% \\
+        1s & włączona & swap & 5827 & 15\% \\
+        2s & włączona & swap & 5746 & 14\% \\
+        5s & włączona & swap & 5626 & 11\% \\
+        10s & włączona & swap & 5683 & 12\% \\
+        20s & włączona & swap & 5567 & 10\% \\
+		\hline
+		0.5s & wyłączona & insert & 5275 & 5\% \\
+        1s & wyłączona & insert & 5275 & 5\% \\
+        2s & wyłączona & insert & 5275 & 5\% \\
+        5s & wyłączona & insert & 5258 & 4\% \\
+        10s & wyłączona & insert & 5258 & 4\% \\
+        20s & wyłączona & insert & 5258 & 4\% \\
+        \hline
+        0.5s & włączona & insert & 5169 & 2\% \\
+        1s & włączona & insert & 5360 & 6\% \\
+        2s & włączona & insert & 5285 & 5\% \\
+        5s & włączona & insert & 5275 & 5\% \\
+        10s & włączona & insert & 5270 & 5\% \\
+        20s & włączona & insert & 5207 & 4\% \\
+        \hline
+		0.5s & wyłączona & invert & 5146 & 2\% \\
+        1s & wyłączona & invert & 5146 & 2\% \\
+        2s & wyłączona & invert & 5146 & 2\% \\
+        5s & wyłączona & invert & 5146 & 2\% \\
+        10s & wyłączona & invert & 5146 & 2\% \\
+        20s & wyłączona & invert & 5146 & 2\% \\
+        \hline
+        0.5s & włączona & invert & 5146 & 2\% \\
+        1s & włączona & invert & 5146 & 2\% \\
+        2s & włączona & invert & 5146 & 2\% \\
+        5s & włączona & invert & 5146 & 2\% \\
+        10s & włączona & invert & 5132 & 2\% \\
+        20s & włączona & invert & 5080 & 1\% \\
+        \hline
+	\end{tabular}}
+	\caption{Przeszukiwanie tabu dla instancji gr48.tsp}
+\end{table}
+
+\begin{table}[H]
+    \centering
+	{\begin{tabular}{|p{0.25\linewidth}p{0.19\linewidth}p{0.14\linewidth}p{0.18\linewidth}p{0.1\linewidth}|}
+		\hline
+        Czas wykonywania & Dywersyfikacja & Sąsiedztwo & Otrzymane rozwiązanie & Błąd \\
+		\hline
+        0.5s & wyłączona & swap & 8961 & 29\% \\
+        1s & wyłączona & swap & 8961 & 29\% \\
+        2s & wyłączona & swap & 8961 & 29\% \\
+        5s & wyłączona & swap & 8961 & 29\% \\
+        10s & wyłączona & swap & 8961 & 29\% \\
+        20s & wyłączona & swap & 8961 & 29\% \\
+        \hline
+        0.5s & włączona & swap & 8961 & 29\% \\
+        1s & włączona & swap & 8961 & 29\% \\
+        2s & włączona & swap & 8961 & 29\% \\
+        5s & włączona & swap & 8961 & 29\% \\
+        10s & włączona & swap & 8961 & 29\% \\
+        20s & włączona & swap & 8961 & 29\% \\
+		\hline
+		0.5s & wyłączona & insert & 8169 & 18\% \\
+        1s & wyłączona & insert & 8167 & 18\% \\
+        2s & wyłączona & insert & 8148 & 17\% \\
+        5s & wyłączona & insert & 8072 & 16\% \\
+        10s & wyłączona & insert & 8024 & 16\% \\
+        20s & wyłączona & insert & 7998 & 15\% \\
+        \hline
+        0.5s & włączona & insert & 8167 & 18\% \\
+        1s & włączona & insert & 8167 & 18\% \\
+        2s & włączona & insert & 8148 & 17\% \\
+        5s & włączona & insert & 8072 & 16\% \\
+        10s & włączona & insert & 8024 & 16\% \\
+        20s & włączona & insert & 7998 & 15\% \\
+        \hline
+		0.5s & wyłączona & invert & 7514 & 8\% \\
+        1s & wyłączona & invert & 7514 & 8\% \\
+        2s & wyłączona & invert & 7514 & 8\% \\
+        5s & wyłączona & invert & 7514 & 8\% \\
+        10s & wyłączona & invert & 7514 & 8\% \\
+        20s & wyłączona & invert & 7513 & 8\% \\
+        \hline
+        0.5s & włączona & invert & 7514 & 8\% \\
+        1s & włączona & invert & 7514 & 8\% \\
+        2s & włączona & invert & 7514 & 8\% \\
+        5s & włączona & invert & 7514 & 8\% \\
+        10s & włączona & invert & 7514 & 8\% \\
+        20s & włączona & invert & 7514 & 8\% \\
+        \hline
+	\end{tabular}}
+	\caption{Przeszukiwanie tabu dla instancji gr120.tsp}
+\end{table}
+
+\subsection{Simulated Annealing}
+Algorytm został przetestowany dla temperatury początkowej wynoszącej 100, 1000, 10000, 100000, 1000000. Tempo schładzania wynosiła: 0.5, 0.6, 0.75, 0.90, 0.99, 0.9999. Testowane sąsiedztwa to swap, insert oraz invert.
+
+W tabelach przedstawiono wyniki tylko dla temperatury początkowej wynoszącej 10000. Przedstawienie wszystkich testowanych temperatur zmniejszyłoby czytelność dokumentu oraz zajęło bardzo dużo miejsca. Temperatura ta okazała się dawać najdokładniejsze wyniki spośród testowanych.
+
+\begin{table}[H]
+    \centering
+	{\begin{tabular}{|p{0.25\linewidth}p{0.15\linewidth}p{0.25\linewidth}p{0.18\linewidth}p{0.1\linewidth}|}
+		\hline
+        Temperatura początkowa & Sąsiedztwo & Tempo schładzania & Otrzymane rozwiązanie & Błąd \\
+		\hline
+        10000 & swap&0.5 & 105 & 169\% \\
+        10000 & insert&0.5 & 82 & 112\% \\
+        10000 & invert&0.5 & 60 & 54\% \\
+        \hline
+        10000 &swap& 0.6 & 96 & 146\% \\
+        10000 &insert& 0.6 & 71 & 82\% \\
+        10000 &invert& 0.6 & 88 & 126\% \\
+        \hline
+        10000 &swap& 0.75 & 80 & 105\% \\
+        10000 &insert& 0.75 & 64 & 64\% \\
+        10000 &invert& 0.75 & 67 & 72\% \\
+        \hline
+        10000 &swap& 0.90 & 65 & 67\% \\
+        10000 &insert& 0.90 & 47 & 21\% \\
+        10000 &invert& 0.90 & 39 & 0\% \\
+        \hline
+        10000 &swap& 0.99 & 39 & 0\% \\
+        10000 &insert& 0.99 & 39 & 0\% \\
+        10000 &invert& 0.99 & 39 & 0\% \\
+        \hline
+        10000 &swap& 0.9999 & 39 & 0\% \\
+        10000 &insert& 0.9999 & 39 & 0\% \\
+        10000 &invert& 0.9999 & 39 & 0\% \\
+        \hline
+	\end{tabular}}
+	\caption{Symulowane wyżarzanie dla instancji 17.txt}
+\end{table}
+
+%%%%%
+\begin{table}[H]
+    \centering
+	{\begin{tabular}{|p{0.25\linewidth}p{0.15\linewidth}p{0.25\linewidth}p{0.18\linewidth}p{0.1\linewidth}|}
+		\hline
+        Temperatura początkowa & Sąsiedztwo & Tempo schładzania & Otrzymane rozwiązanie & Błąd \\
+		\hline
+        10000 & swap&0.5 & 6068 & 124\% \\
+        10000 & insert&0.5 & 3364 & 24\% \\
+        10000 & invert&0.5 & 4415 & 63\% \\
+        \hline
+        10000 &swap& 0.6 & 5144 & 90\% \\
+        10000 &insert& 0.6 & 4603 & 70\% \\
+        10000 &invert& 0.6 & 4804 & 77\% \\
+        \hline
+        10000 &swap& 0.75 & 4596 & 70\% \\
+        10000 &insert& 0.75 & 3369 & 24\% \\
+        10000 &invert& 0.75 & 4679 & 72\% \\
+        \hline
+        10000 &swap& 0.90 & 4065 & 50\% \\
+        10000 &insert& 0.90 & 3758 & 39\% \\
+        10000 &invert& 0.90 & 3634 & 34\% \\
+        \hline
+        10000 &swap& 0.99 & 3100 & 15\% \\
+        10000 &insert& 0.99 & 2999 & 1\% \\
+        10000 &invert& 0.99 & 2877 & 6\% \\
+        \hline
+        10000 &swap& 0.9999 & 2851 & 5\% \\
+        10000 &insert& 0.9999 & 2898 & 7\% \\
+        10000 &invert& 0.9999 & 2707 & 0\% \\
+        \hline
+	\end{tabular}}
+	\caption{Symulowane wyżarzanie dla instancji gr21.tsp}
+\end{table}
+
+%%%%%
+\begin{table}[H]
+    \centering
+	{\begin{tabular}{|p{0.25\linewidth}p{0.15\linewidth}p{0.25\linewidth}p{0.18\linewidth}p{0.1\linewidth}|}
+		\hline
+        Temperatura początkowa & Sąsiedztwo & Tempo schładzania & Otrzymane rozwiązanie & Błąd \\
+		\hline
+        10000 & swap&0.5 & 16687 & 231\% \\
+        10000 & insert&0.5 & 6662 & 32\% \\
+        10000 & invert&0.5 & 6625 & 31\% \\
+        \hline
+        10000 &swap& 0.6 & 14259 & 183\% \\
+        10000 &insert& 0.6 & 8495 & 68\% \\
+        10000 &invert& 0.6 & 8220 & 62\% \\
+        \hline
+        10000 &swap& 0.75 & 13086 & 158\% \\
+        10000 &insert& 0.75 & 8001 & 59\% \\
+        10000 &invert& 0.75 & 8789 & 74\% \\
+        \hline
+        10000 &swap& 0.90 & 12054 & 139\% \\
+        10000 &insert& 0.90 & 9400 & 86\% \\
+        10000 &invert& 0.90 & 10251 & 103\% \\
+        \hline
+        10000 &swap& 0.99 & 8672 & 72\% \\
+        10000 &insert& 0.99 & 7517 & 48\% \\
+        10000 &invert& 0.99 & 6139 & 21\% \\
+        \hline
+        10000 &swap& 0.9999 & 5893 & 17\% \\
+        10000 &insert& 0.9999 & 5282 & 5\% \\
+        10000 &invert& 0.9999 & 5194 & 3\% \\
+        \hline
+	\end{tabular}}
+	\caption{Symulowane wyżarzanie dla instancji gr48.tsp}
+\end{table}
+
+%%%%%
+\begin{table}[H]
+    \centering
+	{\begin{tabular}{|p{0.25\linewidth}p{0.15\linewidth}p{0.25\linewidth}p{0.18\linewidth}p{0.1\linewidth}|}
+		\hline
+        Temperatura początkowa & Sąsiedztwo & Tempo schładzania & Otrzymane rozwiązanie & Błąd \\
+		\hline
+        10000 & swap&0.5 & 45981 & 562\% \\
+        10000 & insert&0.5 & 12180 & 75\% \\
+        10000 & invert&0.5 & 9823 & 41\% \\
+        \hline
+        10000 &swap& 0.6 & 44051 & 534\% \\
+        10000 &insert& 0.6 & 13612 & 96\% \\
+        10000 &invert& 0.6 & 13018 & 87\% \\
+        \hline
+        10000 &swap& 0.75 & 42731 & 516\% \\
+        10000 &insert& 0.75 & 17058 & 145\% \\
+        10000 &invert& 0.75 & 16194 & 133\% \\
+        \hline
+        10000 &swap& 0.90 & 35006 & 404\% \\
+        10000 &insert& 0.90 & 23510 & 238\% \\
+        10000 &invert& 0.90 & 17133 & 147\% \\
+        \hline
+        10000 &swap& 0.99 & 20075 & 189\% \\
+        10000 &insert& 0.99 & 20052 & 188\% \\
+        10000 &invert& 0.99 & 15687 & 126\% \\
+        \hline
+        10000 &swap& 0.9999 & 10124 & 45\% \\
+        10000 &insert& 0.9999 & 7980 & 15\% \\
+        10000 &invert& 0.9999 & 7379 & 6\% \\
+        \hline
+	\end{tabular}}
+	\caption{Symulowane wyżarzanie dla instancji gr120.tsp}
+\end{table}
+
+\section{Wnioski}
+Algorytm przeszukiwania tabu w porównaniu z symulowanym wyżarzaniem daje znacznie mniejszy zakres błędu. Oscyluje on w przedziale od 0-20\% od optymalnego rozwiązania. Jakość rozwiązania zależy od parametrów algorytmu: ilości iteracji, długości listy tabu, warunku krytycznego. Uzyskiwanie sąsiedztwa poprzez metodę invert daje lepsze wyniki niż pozostałe dwie metody (swap oraz insert). Swap daje wyniki o największym zakresie błędu.
+
+Symulowane wyżarzanie w dużym stopniu zależy od ustawionych parametrów algorytmu. Temperatura początkowa oraz tempo schładzania wpływają na zakres błędu. Tylko odpowiednie ich ustawienie jest w stanie zagwarantować wyniki zbliżone do optymalnych.
+
+Jeśli dysponujemy większą ilością czasu lepszym wyborem będzie algorytm przeszukiwania tabu, ponieważ jest on bardziej dokładny i wykonuje się w akceptowalnym czasie. Jeśli natomiast zależy nam na szybkości działania algorytm symulowanego wyżarzania spisze się znacznie lepiej, jednak będziemy musieli wziąc pod uwagę generowane przez niego błędy.
+
+Dużą zaletą obu algorytmów jest to, że mogą wykonywać się dla znacznie większej ilości wierzchołków w grafie niż algorytmy: Branc \& Bound, Brute Force i Dynamic Programming. Z drugiej jednak strony, dają one wyniki przybliżone, więc nie nadają się do uzyskiwania wartości optymalnej.
+
+\bibliographystyle{unsrt}
+\bibliography{references}
+
+\end{document}
