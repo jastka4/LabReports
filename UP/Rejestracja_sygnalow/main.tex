@@ -1,0 +1,146 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{polski}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{chngpage}
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{minted}
+
+\setminted{
+    linenos=true,
+    autogobble,
+    breaklines,
+    frame=lines,
+    framerule=1pt,
+    framesep=10pt
+}
+
+\newenvironment{longlisting}{}{}
+
+\makeatletter
+\newcommand{\linia}{\rule{\linewidth}{0.4mm}}
+\renewcommand{\maketitle}{\begin{titlepage}
+    \vspace*{1cm}
+    \begin{center}\small
+    Politechnika Wrocławska\\
+    Wydział Elektroniki\\
+    Urządzenia Peryferyjne
+    \end{center}
+    \vspace{3cm}
+    \noindent\linia
+    \begin{center}
+      \LARGE \textsc{\@title}
+         \end{center}
+     \linia
+    \vspace{0.5cm}
+    \begin{flushright}
+    \begin{minipage}{7cm}
+    \textit{\small Autor:}\\
+    \normalsize \textsc{\@author} \par
+    \end{minipage}
+    \vspace{5cm}
+
+    16 stycznia 2019\\
+     {\small środa, 14\textsuperscript{15}-17\textsuperscript{15} TN}\\
+        Mgr inż. Kamil Szyc
+        
+     \end{flushright}
+    \vspace*{\stretch{6}}
+    \begin{center}
+    \end{center}
+  \end{titlepage}
+}
+\makeatother
+\author{225942 Justyna Skalska \\
+        226126 Grzegorz Kopacz}
+\title{\textbf{Urządzenia peryferyjne}\\
+\normalsize{Rejestracja sygnałów (Advantech DAQ)}}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\newpage
+
+\section{Opis zadania}
+Podczas zajęć laboratoryjnych mieliśmy podłączyć oraz przetestować działanie urządzenia Advantech USB-4702, generatora przebiegów oraz przetestować pobieranie danych. Kolejnym naszym zadaniem było napisanie programu w języku C\#, który miał działać jak oscyloskop. Kolejno nasz program miał zapisywać odebrane dane do pliku. Z odebranych przez nas danych mieliśmy następnie stworzyć wykres w wybranym przez nas programie. Do narysowania wykresów skorzystaliśmy z Matlaba oraz Microsoft Excel.
+
+\section{Wstęp} 
+Urządzenia DAQ jak na przykład używane podczas ćwiczenia Advantech USB-4702 to urządzenia pozwalające na przekonwertowanie sygnału analogowego na sygnał cyfrowy. Program Advantech Navigator daje możliwość odczytania odebranych sygnałów oraz analizy otrzymanych wykresów. 
+
+
+\section{Zadanie}
+Kod został wykonany przy użyciu języka C\#. Urządzenie Advantech USB-4702 zostało podłączone do portu USB. Niestety z przyczyn technicznych nie jesteśmy w stanie zamieścić zdjęcia interfejsu wykonanej przez nasz aplikacji. Posiadała ona jednak 2 przyciski: Start oraz Stop, które odpowiadały kolejno za rozpoczęcie pobierania danych z generatora przebiegów i zapisywania ich do pliku oraz oraz zaprzestanie wykonywania tych czynności.
+\newline
+\newline
+
+\begin{listing}
+\caption{Zmienne globalne}
+\begin{minted}{csharp}
+private string path = @"C:\Users\lab\Documents\MyTest.txt";
+        static int numberDevice = 0, startChannel = 4, channels = 1, times = 0;
+        static InstantAiCtrl ctrl = null;
+        static double[] data = null;
+        StreamWriter sw = null;
+\end{minted}
+\label{lst:global}
+\end{listing}
+
+\begin{listing}[H]
+\caption{Kod do podłączenia się z urządzeniem}
+\begin{minted}{csharp}
+InitializeComponent();
+            ctrl = new InstantAiCtrl();
+            ctrl.SelectedDevice = new DeviceInformation(numberDevice);
+            data = new double[channels];
+            if (!ctrl.Initialized)
+            {
+                MessageBox.Show("Nie znaleziono urzadzenia");
+                this.Close();
+                return;
+            }
+\end{minted}
+\label{lst:connect}
+\end{listing}
+
+
+\begin{listing}[H]
+\caption{Funkcja zapisująca dane do pliku}
+\begin{minted}{csharp}
+private void timer1_Tick(object sender, EventArgs e)
+        {
+            ErrorCode error = ErrorCode.Success;
+            error = ctrl.Read(startChannel, channels, data);
+            if (error != ErrorCode.Success)
+            {
+                MessageBox.Show("Błąd");
+                timer1.Stop();
+                sw.Close();
+                StartButton.Enabled = true;
+                StopButton.Enabled = false;
+            }
+            else
+            {
+                sw.Write(" ");
+                for (int j = 0; j < channels; j++)
+                {
+                    sw.Write(data[j]);
+                }
+                times++;
+            }
+        }
+\end{minted}
+\label{lst:write_bytes}
+\end{listing}
+
+
+\section{Wnioski}
+
+Ćwiczenie pozwoliło nam przypomnieć sobie zasady działania generatora przebiegów czy różnic między sygnałami analogowymi a cyfrowymi. Dodatkowo mogliśmy bliżej poznać używane podczas ćwiczenia środowiska programistycznego DAQNavi.
+\newpage
+
+\listoflistings
+\end{document}
