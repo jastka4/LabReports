@@ -1,0 +1,239 @@
+\documentclass[12pt,a4paper,titlepage]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{polski}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{minted}
+\usepackage{amsmath}
+\usepackage{caption}
+ 
+\setminted{
+    linenos=true,
+    autogobble,
+    breaklines,
+    frame=lines,
+    framerule=1pt,
+    framesep=10pt
+}
+
+\newenvironment{longlisting}{}{}
+
+\makeatletter
+\newcommand{\linia}{\rule{\linewidth}{0.4mm}}
+\renewcommand{\maketitle}{\begin{titlepage}
+    \vspace*{1cm}
+    \begin{center}\small
+    Politechnika Wrocławska\\
+    Wydział Elektroniki\\
+    Bezpieczeństwo Systemów i Usług Informatycznych 2
+    \end{center}
+    \vspace{3cm}
+    \noindent\linia
+    \begin{center}
+      \LARGE \textsc{\@title}
+         \end{center}
+     \linia
+    \vspace{0.5cm}
+    \begin{flushright}
+    \begin{minipage}{7cm}
+    \textit{\small Autor:}\\
+    \normalsize \textsc{\@author} \par
+    \end{minipage}
+    \vspace{5cm}
+
+     {\small wtorek, 11\textsuperscript{15}-14\textsuperscript{00} TN}\\
+        mgr inż. Przemysław Świercz
+     \end{flushright}
+    \vspace*{\stretch{6}}
+    \begin{center}
+    \@date
+    \end{center}
+  \end{titlepage}%
+}
+\makeatother
+\author{Justyna Skalska, 225942}
+\title{Sprawozdanie nr 1\\
+(Komunikator z szyfrowaniem)}
+
+\begin{document}
+
+\maketitle
+\section{Omówienie tematu}
+Naszym zadaniem podczas laboratorium było stworzenie prostego komunikatora (chatu) o architekturze klient-serwer wspierającego bezpieczną wymianę sekretu (protokół Diffie-Hellman) oraz obsługującego zadany format komunikacji.
+Komunikaty wymieniane były w formacie JSON i podzielone były na przedstawione poniżej etapy.
+
+\begin{table}[h!]
+\caption{Format danych oparty na JSONie}
+\begin{tabular}{|c|c|c|}
+\hline
+Etap & A (klient)                           & B (serwer) \\
+\hline
+1     & \{ “request”: “keys” \} →            & \\
+\hline
+2     &                                      & ← \{ “p”: 123, “g”: 123 \} \\
+\hline
+3     & \{ “a”: 123 \} →                     & ← \{ “b”: 123 \} \\
+\hline
+4     & \{ “encryption”: “none” \} →         & \\
+\hline
+5     & \{ “msg”: “...”, “from”: “John” \} → & ← \{ “msg”: “...”, “from”: “Anna” \} \\
+\hline
+\end{tabular}
+\end{table}
+
+Komunikat zawierający szyfrowanie jest opcjonalny. Jeśli klient nie wyśle tego argumentu jego domyślą wartością jest brak szyfrowania. Może on zawierać jedną z trzech typów:
+\begin{itemize}
+    \item Brak szyfrowania ("none"),
+    \item Szyfr Cezara ("caesar"),
+    \item Szyfrowanie XOR jednobajtowe - kluczem jest najmłodszy bajt sekretu ("xor").
+\end{itemize}{}
+
+Każda treść wiadomości zapisana jest w formacie base64, aby uniknąć problemów z niektórymi znakami przesyłanymi między klientem a serwerem.
+
+\section{Omówienie rozwiązania oraz kodu}
+Zaimplementowane przeze mnie rozwiązanie korzysta z biblioteki "org.json" do parsowania komunikatów wysyłanych w formacie JSON. Aplikacja może szyfrować wiadomości w trzech różnych trybach szyfrowania. Funkcje szyfrujące i deszyfrujące informacje przedstawione są poniżej.
+
+\begin{listing}[H]
+\caption{Funkcje do szyfrowania i deszyfrowania wiadomości}
+\begin{minted}{Java}
+protected String decrypt(final String message) {
+    if (Encryption.CAESAR.equals(encryption)) {
+        final int shift = key.intValue() % 26;
+        return CaesarCipher.encryptDecrypt(message, 26 - shift);
+    } else if (Encryption.XOR.equals(encryption)) {
+        final byte[] bytes = key.toByteArray();
+        return XOREncryption.encryptDecrypt(message, (char) bytes[bytes.length - 1]);
+    } else {
+        return message;
+    }
+}
+
+protected String encrypt(final String message) {
+    if (Encryption.CAESAR.equals(encryption)) {
+        final int shift = key.intValue() % 26;
+        return CaesarCipher.encryptDecrypt(message, shift);
+    } else if (Encryption.XOR.equals(encryption)) {
+        final byte[] bytes = key.toByteArray();
+        return XOREncryption.encryptDecrypt(message, (char) bytes[bytes.length - 1]);
+    } else {
+        return message;
+    }
+}
+\end{minted}
+\end{listing}
+
+Funkcja przedstawiona powyżej korzysta ze stworzonych klas implementujących szyfrowanie XOR lub Cezara. Oba szyfrowania przedstawione są poniżej.
+
+\begin{listing}[H]
+\caption{Klasa szyfrująca wiadomości szyfrowaniem XOR}
+\begin{minted}{Java}
+public class XOREncryption {
+    private XOREncryption() {}
+
+    public static String encryptDecrypt(final String message, final char key) {
+        final StringBuilder outputString = new StringBuilder();
+        final int len = message.length();
+
+        for (int i = 0; i < len; i++) {
+            outputString.append((char) (message.charAt(i) ^ key));
+        }
+
+        return outputString.toString();
+    }
+}
+\end{minted}
+\end{listing}
+
+\begin{listing}[H]
+\caption{Klasa szyfrująca wiadomości szyfrem Cezara}
+\begin{minted}{Java}
+public class CaesarCipher {
+    private CaesarCipher() {}
+
+    public static String encryptDecrypt(final String text, final int shift) {
+        final StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < text.length(); i++) {
+            if (Character.isUpperCase(text.charAt(i))) {
+                char ch = (char) (((int) text.charAt(i) +
+                        shift - 65) % 26 + 65);
+                result.append(ch);
+            } else {
+                char ch = (char) (((int) text.charAt(i) +
+                        shift - 97) % 26 + 97);
+                result.append(ch);
+            }
+        }
+        return result.toString();
+    }
+}
+\end{minted}
+\end{listing}
+
+Dla każdego klienta i serwera należy wygenerować klucz prywatny, które będzie wykorzystywany do obliczania klucza końcowego. Każdy klient oraz serwer mają swoje niepowtarzane, generowane podczas połączenia klucze prywatne. Generowanie kluczy P oraz Q po stronie serwera może zająć nawet do 30 sekund, a wartości P oraz Q są ze sobą ściśle powiązane.
+
+\begin{listing}[H]
+\caption{Funkcja do generowania klucza prywatnego}
+\begin{minted}{Java}
+protected BigInteger generatePrivateKey(final SecureRandom secureRandom, final BigInteger p) {
+    boolean good = false;
+    BigInteger b = null;
+    while (!good) {
+        b = new BigInteger(1025, secureRandom);
+        if (b.compareTo(p.subtract(BigInteger.ONE)) < 0) {
+            good = true
+        };
+    }
+    return b;
+}
+\end{minted}
+\end{listing}
+
+\begin{listing}[H]
+\caption{Fragment kodu generujący parametry P oraz Q serwera}
+\begin{minted}{Java}
+private BigInteger findPrimitive(final BigInteger p, final BigInteger q) {
+    BigInteger g = BigInteger.ONE;
+    boolean foundPrimitive = false;
+
+    while (!foundPrimitive) {
+        g = g.add(BigInteger.ONE);
+        BigInteger remainder = g.remainder(p);
+        if (BigInteger.ONE.compareTo(remainder) != 0) {
+            BigInteger gToQModP = g.modPow(q, p);
+            if (BigInteger.ONE.compareTo(gToQModP) != 0) {
+                foundPrimitive = true;
+            }
+        }
+    }
+    return g;
+}
+\end{minted}
+\end{listing}
+
+\begin{listing}[H]
+\caption{Fragment kodu generujący parametry P oraz Q serwera}
+\begin{minted}{Java}
+final SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
+BigInteger p = null;
+BigInteger q = null;
+
+boolean probablePrime = false;
+while (!probablePrime) {
+    q = BigInteger.probablePrime(1024, secureRandom);
+    p = q.shiftLeft(1);
+    p = p.setBit(0);
+    probablePrime = p.isProbablePrime(100);
+}
+
+final BigInteger g = findPrimitive(p, q);
+final BigInteger secretKey = generatePrivateKey(secureRandom, p);
+\end{minted}
+\end{listing}
+
+\section{Rezultat prac i wnioski}
+Udało mi się zaimplementować wszystkie wymienione w omówieniu funkcjonalności. Jedyną która sprawiła mi lekkie problemy było odbieranie opcjonalnego komunikatu zawierającego sposób szyfrowania.
+Wymiana kluczy w protokole Diffiego-Hellmana jest bardzo prosta w implementacji, a wygenerowany klucz jest praktycznie niemożliwy do odtworzenia przez osobę podsłuchującą.
+
+\end{document}
