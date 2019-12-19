@@ -1,0 +1,117 @@
+\documentclass[12pt,a4paper,titlepage]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{polski}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{minted}
+\usepackage{amsmath}
+\usepackage{caption}
+\usepackage{hyperref} 
+ 
+\setminted{
+    autogobble,
+    breaklines,
+    framerule=1pt,
+    framesep=10pt
+}
+
+\newenvironment{longlisting}{}{}
+
+\makeatletter
+\newcommand{\linia}{\rule{\linewidth}{0.4mm}}
+\renewcommand{\maketitle}{\begin{titlepage}
+    \vspace*{1cm}
+    \begin{center}\small
+    Politechnika Wrocławska\\
+    Wydział Elektroniki\\
+    Bezpieczeństwo Systemów i Usług Informatycznych 2
+    \end{center}
+    \vspace{3cm}
+    \noindent\linia
+    \begin{center}
+      \LARGE \textsc{\@title}
+         \end{center}
+     \linia
+    \vspace{0.5cm}
+    \begin{flushright}
+    \begin{minipage}{7cm}
+    \textit{\small Autor:}\\
+    \normalsize \textsc{\@author} \par
+    \end{minipage}
+    \vspace{5cm}
+
+     {\small wtorek, 11\textsuperscript{15}-14\textsuperscript{00} TN}\\
+        mgr inż. Przemysław Świercz
+     \end{flushright}
+    \vspace*{\stretch{6}}
+    \begin{center}
+    \@date
+    \end{center}
+  \end{titlepage}%
+}
+\makeatother
+\author{Justyna Skalska, 225942}
+\title{Sprawozdanie nr 2\\
+(Hackme oraz Hackme 2.0)}
+
+\begin{document}
+
+\maketitle
+
+\section{Omówienie tematu}
+Naszym zadaniem podczas laboratorium było przejście dwóch gier, w których wcielamy się w hackera i próbujemy zalogować się do systemy łamiąc hasła na różne ciekawe sposoby. Adresy stron:
+\begin{itemize}
+    \item \url{http://uw-team.org/hackme/}
+    \item \url{http://uw-team.org/hm2/}
+\end{itemize}
+
+\section{Omówienie rozwiązania}
+
+\subsection{Hackme}
+\subsubsection{Poziom 1}
+Hasło było jawnie zapisane w tagu \mintinline{HTML}{<script>} znajdującym się po tagu \mintinline{HTML}{<body>}.
+\subsubsection{Poziom 2}
+Hasło w zostało zapisane w zmiennej, w pliku "script.js" i wykorzystane w tagu \mintinline{HTML}{<script>}, w kodzie strony do sprawdzenia poprawności.
+\subsubsection{Poziom 3}
+W tagu \mintinline{HTML}{<script>} znajdował się kod do sprawdzania poprawności hasła, który łączył wybrane ciągi znaków. Wystarczyło przejrzeć te ciągi oraz ich wybrane podciągi.
+\subsubsection{Poziom 4}
+W tagu \mintinline{HTML}{<script>} znajdował się kod wykonujący zadane równanie. Hasło było jego wynikiem. Wystarczyło obliczyć równanie zapisane w kodzie i wpisać je jako hasło.
+\subsubsection{Poziom 5}
+Trzeba było wstawić takie wartości, aby równanie przedstawione poniżej było prawdziwe. Wybrałam liczbę sekund równą 42 i liczbę pomocniczą równą 1.
+\begin{listing}[H]
+\begin{minted}{JS}
+861 = ((seconds * (seconds - 1)) / 2) * (document.getElementById('pomoc').value % 2)
+\end{minted}
+\end{listing}
+\subsubsection{Poziom 6}
+Zadanie to polegało na znajomości funkcji \mintinline{js}{substring}. Trzeba było zauważyć, że zmienna i w pętli \mintinline{js}{for} powiększa się o dwa co daje tylko 3 obroty pętli zamiast pięciu. Dzięki temu łatwo można było obliczyć każdy poszczególny podciąg zadany w pętli. Następnie trzeba było odnaleźć zadany podciąg z utworzonego wcześniej ciągu znaków i połączyć go z nim. Dzięki temu można było w łatwy sposób otrzymać hasło. Wymagało to tylko odrobiny skupienia i prześledzenia kodu.
+\subsubsection{Poziom 7}
+Wystarczyło znaleźć jak zakodowane jest wymienione w kodzie strony hasło. Każda litera hasła odpowiadała jednej literze ciągu, który mieliśmy wpisać w pole tekstowe.
+\subsubsection{Poziom 8}
+Część zmiennych znajdowała się w innym pliku, podanym w skrypcie. Trzeba było obliczyć wartość tych zmiennych i użyć ich podczas tworzenia hasła. W pętli for głównego skryptu trzeba było obliczyć zmienną \mintinline{js}{i} oraz zmienną pomocniczą \mintinline{js}{qet} i na ich podstawie znaleźć numer znaku z zadanego ciągu, który chcieliśmy użyć w haśle.
+
+\subsection{Hackme 2.0}
+\subsubsection{Poziom 1}
+Znajdował się tam ukryty \mintinline{HTML}{<input>}, którego wartość wynosiła "text". Aby hasło było poprawne wartość w obu inputach musiała być taka sama. Wystarczyło więc wpisać tekst z ukrytego formularza do tego nieukrytego.
+\subsubsection{Poziom 2}
+Wystarczyło dekodować podany w skrypcie ciąg znaków i wpisać go jako hasło.
+\subsubsection{Poziom 3}
+Hasło można było znaleźć zamieniając zapisany ciąg zer i jedynek na liczbę dziesiętną.
+\subsubsection{Poziom 4}
+Podczas tego zadania w tle działał skrypt, którego nie dało się zatrzymać inaczej niż wpisując hasło lub "X" co powodowało zakończenie całego Hackme. W inspektorze nie można było dostać kodu strony. Aby go znaleźć weszłam w zakładkę "Sieci" i skopiowałam odpowiedź żądania o kod strony z przeglądarki. W odpowiedzi był skrypt, dzięki któremu łatwo było już obliczyć hasło.
+\subsubsection{Poziom 5}
+Trzeba było zmienić nazwy inputów w formularzu z "login" na "log" i "haslo" na "has", a następnie w obu podać liczbę 1. Alternatywnie można było podmienić dane w linku, ponieważ był to \mintinline{HTML}{GET} i wszystkie dane były wysyłane jawnie.
+\subsubsection{Poziom 6}
+Należało znaleźć ciasteczko i przeczytać jaki adres posiadała kolejna strona w zagadce, a następnie do niej przejść.
+\subsubsection{Poziom 7}
+W tym zadaniu trzeba było pobrać kod strony z żądania \mintinline{HTML}{GET}, które zostało wysłane podczas ładowania strony. Znajdował się w nim skrypt, dzięki któremu dostałam się do podfolderu na serwerze o nazwie "includes". W nim znajdował się plik "cosik.js", którego nazwa była hasłem tego etapu.
+\subsubsection{Poziom 8}
+Używając podglądu zapytań można było dostać cały kod strony. Aby dostać się do niej należało ustawić w nagłówku żądania referera jako "\url{http://www.onet.pl/}". Dodatkowo w kodzie pobranym wcześniej można było odczytać jawnie zapisane hasło. Używając referera oraz odczytanego hasła stworzyłam zapytanie, które w odpowiedzi zawierało nazwę strony z kolejnym etapem.
+\subsubsection{Poziom 9}
+W ostatnim zadaniu treść strony pojawiała się tylko o godzinie 1:00. Ja skorzystałam z przesyłanego przez przeglądarkę zapytania \mintinline{HTML}{GET} i dostałam się w ten sposób do kodu strony. Alternatywnie można było przestawić zegarek systemowy tak, aby wskazywał godzinę 1:00. W treści znajdowało się kilka zakodowanych ciągów znaków. Pierwszy z nich był zakodowany binarnie, wystarczyło skorzystać z wyszukiwarki Google by znaleźć stronę konwertującą ciąg binarny na ASCII. Kolejne dwa ciągi były zakodowane przy użyciu szyfru przesuwającego 13 oraz 2.
+
+\section{Wnioski}
+Podczas zajęć udało mi się wykonać wszystkie zadania z obu stron. Był to bardzo ciekawy trening pokazujący w jak łatwy sposób można dostać się do kodu strony, zrozumieć go, a także nim manipulować. Właśnie z takich powodów niektórzy twórcy decydują się na zaciemnianie (ang. \textit{obfuscation}) kodu swoich witryn internetowych, które znacznie utrudnia jego czytanie i zrozumienie. W trakcie wykonywania tego ćwiczenia przydały mi się wcześniej nabyte umiejętności związane z językiem JavaScript, a także znajomość RESTa oraz narzędzi przeglądarki. Te zadania można było także wykonać używając cURL, Postmana, SoapUI lub innego podobnego narzędzia.
+
+\end{document}
