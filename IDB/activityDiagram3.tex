@@ -1,0 +1,25 @@
+\begin{tikzpicture}
+        \umlstateinitial[name=begin]
+        \node[singlestate] at (4,0) (getId){Pobierz identyfikator produktu};
+        \node[singlestate] at (4,-2) (getUser){Pobierz identyfikator klienta};
+        \node[singlestate] at (4,-4) (checkAmount){Sprawdź, czy dany przedmiot jest w magazynie};
+        \umlstatedecision[x=4,y=-7,name=check]
+        \node[singlestate] at (0,-7) (success){Do koszyka klienta dodaj przedmiot};
+        \node[singlestate] at (8,-7) (error){Wyświetl komunikat o braku towaru};
+        \node[singlestate] at (0,-9) (removeFromStock){Zmniejsz ilość produktu w magazynie};
+        \node[singlestate] at (0,-11) (countValue){Przelicz wartość koszyka};
+        \umlstateexit[x=0,y=-12.5,name=exit1]
+        \umlstateexit[x=8,y=-8.5,name=exit2]
+        
+        \umltrans{begin}{getId}
+        \umltrans{getId}{getUser}
+        \umltrans{getUser}{checkAmount}
+        \umltrans{checkAmount}{check}
+        \umltrans[arg=Jest, pos=0.5]{check}{success}
+        \umltrans[arg=Brak, pos=0.3]{check}{error}
+        \umltrans{success}{removeFromStock}
+        \umltrans{removeFromStock}{countValue}
+        \umltrans{countValue}{exit1}
+        \umltrans{error}{exit2}
+        
+    \end{tikzpicture}

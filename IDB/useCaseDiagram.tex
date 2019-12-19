@@ -1,0 +1,36 @@
+\begin{tikzpicture}
+    \begin{umlsystem}[x=4.5, fill=gray!10]{Sklep internetowy}
+        \umlusecase[x=2, y=10, fill=cyan!30, width=3cm]{Zalogowanie się na konto}
+        \umlusecase[y=8, fill=cyan!30, width=3cm]{Utworzenie konta}
+        \umlusecase[y=6, fill=cyan!30, width=3cm]{Dodanie towaru do koszyka}
+        \umlusecase[y=4, fill=cyan!30, width=3cm]{Usunięcie towaru z koszyka}
+        \umlusecase[y=2, fill=cyan!30, width=3cm]{Wyświetlanie koszyka}
+        
+        \umlusecase[x=5, y=8, fill=cyan!30, width=3cm]{Wyświetlanie listy produktów}
+        \umlusecase[x=5, y=6, fill=cyan!30, width=3cm]{Dodawanie produktów do bazy}
+        \umlusecase[x=5, y=4, fill=cyan!30, width=3cm]{Usuwanie produktów z bazy}
+        \umlusecase[x=5, y=2, fill=cyan!30, width=3cm]{Wyświetlanie listy kategorii}
+        \umlusecase[x=5, y=0, fill=cyan!30, width=3cm]{Dodawanie kategorii do bazy}
+        \umlusecase[x=5, y=-2, fill=cyan!30, width=3cm]{Usuwanie kategorii z bazy}
+        \umlusecase[x=5, y=-4, fill=cyan!30, width=3cm]{Wyświetlanie zarejestrowanych użytkowników}
+        \umlusecase[x=5, y=-6.5, fill=cyan!30, width=3cm]{Wyświetlanie złożonych zamówień}
+        \umlusecase[x=5, y=-9, fill=cyan!30, width=3cm]{Wyświetlanie stworzonych koszyków}
+    \end{umlsystem}
+    \umlactor[y=6]{Klient}
+    \umlactor[x=14, y=0]{Admin}
+    \umlassoc{Klient}{usecase-1}
+    \umlassoc{Klient}{usecase-2}
+    \umlassoc{Klient}{usecase-3}
+    \umlassoc{Klient}{usecase-4}
+    \umlassoc{Klient}{usecase-5}
+    \umlassoc{Admin}{usecase-1}
+    \umlassoc{Admin}{usecase-6}
+    \umlassoc{Admin}{usecase-7}
+    \umlassoc{Admin}{usecase-8}
+    \umlassoc{Admin}{usecase-9}
+    \umlassoc{Admin}{usecase-10}
+    \umlassoc{Admin}{usecase-11}
+    \umlassoc{Admin}{usecase-12}
+    \umlassoc{Admin}{usecase-13}
+    \umlassoc{Admin}{usecase-14}
+\end{tikzpicture}

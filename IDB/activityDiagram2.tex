@@ -1,0 +1,18 @@
+\begin{tikzpicture}
+        \umlstateinitial[name=begin]
+        \node[singlestate] at (4,0) (getName){Podaj nazwę towaru};
+        \node[singlestate] at (4,-2) (search){Wyszukaj towar w bazie};
+        \umlstatedecision[x=4,y=-4,name=decision]
+        \node[singlestate] at (0,-4) (found){Wyświetl listę produktów};
+        \node[singlestate] at (8,-4) (notFound){Wyświetl komunikat o braku towaru};
+        \umlstateexit[x=0,y=-5.5,name=exit1]
+        \umlstateexit[x=8,y=-5.5,name=exit2]
+        
+        \umltrans{begin}{getName}
+        \umltrans{getName}{search}
+        \umltrans{search}{decision}
+        \umltrans{decision}{found}
+        \umltrans{decision}{notFound}
+        \umltrans{found}{exit1}
+        \umltrans{notFound}{exit2}
+    \end{tikzpicture}

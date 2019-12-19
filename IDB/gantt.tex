@@ -1,0 +1,47 @@
+\begin{turn}{90}
+\begin{ganttchart}[
+    % today=53,
+    % today rule/.style= {thick},
+    x unit=0.25cm,
+    y unit title=0.7cm,
+    y unit chart=0.7cm,
+    progress label text={},
+    bar height=0.7,
+    group label font=\bfseries,
+    milestone label font=\tiny\itshape,
+    title height=1,
+    bar/.style={draw=black, fill=gray!50},
+    bar incomplete/.style={draw=black, fill=white},
+    vgrid, hgrid]{1}{56}
+    \gantttitle{2019}{56} \\
+    % \gantttitle{2018}{24} \\
+    \gantttitle{Październik}{17}
+    \gantttitle{Listopad}{30}2
+    \gantttitle{Grudzień}{9} \\
+    % \gantttitle{January}{4}
+    % \gantttitle{February}{4}
+    % \gantttitle{March}{4}
+    % \gantttitle{April}{4} 
+    % \gantttitle{May}{4}
+    % \gantttitle{June}{4} \\
+    \ganttgroup{Projektowanie}{1}{21} \\
+    \ganttbar[progress=100]{Cel i zakres}{1}{14} \\
+    \ganttbar[progress=100]{Analiza SWOT}{8}{21} \\
+    \ganttbar[progress=100]{Diagramy UML}{12}{21} \\
+    \ganttbar[progress=100]{Kosztorys}{15}{21} \\
+    \ganttgroup{Implementacja}{15}{50} \\
+    \ganttbar[progress=100]{Stworzenie projektu}{15}{21} \\
+    \ganttbar[progress=100]{Stworzenie bazy danych}{15}{28} \\
+    \ganttbar[progress=100]{Połączenie z bazą}{22}{28} \\
+    \ganttbar[progress=100]{Stworzenie kontrolerów}{22}{50} \\
+    \ganttbar[progress=100]{Stworzenie front-endu}{29}{50} \\
+    \ganttgroup{Wdrożenie}{51}{56} \\
+    \ganttbar[progress=100]{Prezentacja projektu}{51}{56} \\
+    % \ganttbar[progress=0]{}{29}{29} % <-- empty label
+    % \ganttmilestone{Task 11}{35}
+    
+    % \ganttlink{elem6}{elem9}
+    % \ganttlink{elem6}{elem8}
+\end{ganttchart}
+\end{turn}
+% \caption{Harmonogram zadań}

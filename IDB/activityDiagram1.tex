@@ -1,0 +1,17 @@
+\begin{tikzpicture}
+    \umlstateinitial[name=begin]
+    \node[singlestate] at (4,0) (getName){Podaj dane użytkownika};
+    \node[singlestate] at (4,-2) (search){Sprawdź, czy istnieje użytkownik o podanym adresie email};
+    \umlstatedecision[x=4,y=-4,name=decision]
+    \node[singlestate] at (0,-4) (notFound){Dodaj użytkownika do bazy};
+    \node[singlestate] at (8,-4) (found){Wyświetl błąd};
+    \umlstateexit[x=0,y=-5.5,name=success]
+
+    \umltrans{begin}{getName}
+    \umltrans{getName}{search}
+    \umltrans{search}{decision}
+    \umltrans{decision}{found}
+    \umltrans{decision}{notFound}
+    \umltrans{notFound}{success}
+    \umlHVHtrans[arm1=3cm]{found}{getName}
+\end{tikzpicture}
