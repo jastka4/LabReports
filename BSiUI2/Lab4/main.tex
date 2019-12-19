@@ -1,0 +1,124 @@
+\documentclass[12pt,a4paper,titlepage]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{polski}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{minted}
+\usepackage{amsmath}
+\usepackage{caption}
+\usepackage{hyperref} 
+
+\renewcommand\listoflistingscaption{Spis listingów}
+
+\setminted{
+    autogobble,
+    breaklines,
+    framerule=1pt,
+    framesep=10pt
+}
+
+\newenvironment{longlisting}{}{}
+
+\makeatletter
+\newcommand{\linia}{\rule{\linewidth}{0.4mm}}
+\renewcommand{\maketitle}{\begin{titlepage}
+    \vspace*{1cm}
+    \begin{center}\small
+    Politechnika Wrocławska\\
+    Wydział Elektroniki\\
+    Bezpieczeństwo Systemów i Usług Informatycznych 2
+    \end{center}
+    \vspace{3cm}
+    \noindent\linia
+    \begin{center}
+      \LARGE \textsc{\@title}
+         \end{center}
+     \linia
+    \vspace{0.5cm}
+    \begin{flushright}
+    \begin{minipage}{7cm}
+    \textit{\small Autor:}\\
+    \normalsize \textsc{\@author} \par
+    \end{minipage}
+    \vspace{5cm}
+
+     {\small wtorek, 11\textsuperscript{15}-14\textsuperscript{00} TN}\\
+        mgr inż. Przemysław Świercz
+     \end{flushright}
+    \vspace*{\stretch{6}}
+    \begin{center}
+    \@date
+    \end{center}
+  \end{titlepage}%
+}
+\makeatother
+\author{Justyna Skalska, 225942}
+\title{Sprawozdanie nr 4\\
+(Keygenme)}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents 
+\newpage
+
+\section{Omówienie tematu}
+Naszym zadaniem podczas laboratorium było rozwiązanie zagadki typu crackme, a dokładniej keygenme. Podzielone było na dwie części. Na początku należało odnaleźć wygenerowany przez program klucz dla zadanego loginu, był to numer mojego indeksu. Następna część polegała na stworzeniu keygena, który zadziała jak generator kluczy zaimplementowany w programie i dla wybranego loginu wypisze nam klucz, który zadziała w otrzymanej przez nas aplikacji.
+
+\section{Omówienie rozwiązania}
+
+\subsection{Część 1}
+Podczas tego zadania należało znaleźć wygenerowany klucz dla podanego loginu, który był numerem mojego indeksu. Na początku trzeba było dezasemblować funkcję \mintinline{gas}{main}. W assemblerowym kodzie można było znaleźć wywołanie funkcji \mintinline{gas}{generate_key}. Następnie wystarczyło ustawić break point po wykonaniu tej funkcji i oczytać wartość zapisaną w rejestrze \mintinline{gas}{esi}. Znajdowało się w nim wygenerowane hasło.
+
+\begin{listing}[H]
+\caption{Komendy wykorzystane przy debugowaniu programu.}
+\begin{minted}{bash}
+# dezasembluje określoną funkcję
+disas main
+disas generate_key
+# rozpoczyna wykonywanie programu
+run
+# kontynuuje wykonywanie programu
+c
+# ustawia break point w podanym punkcie funkcji
+b *(main+77)
+# wypisuje wartość przechowywaną w zmiennej
+p $ecx
+# wypisuje zawartość adresu pamięci w postaci hexadecymalnej
+x/x $ebp-0x14       
+x/x $ecx
+\end{minted}
+\end{listing}
+
+\subsection{Część 2}
+Druga część zadania polegała na napisaniu keygena dla otrzymanego przez nas programu. Miał on zwracać hasło dla zadanego przez użytkownika loginu, który składać się miał tylko z cyfr. Większość czasu poświęconego na to ćwiczenie przeznaczyłam na analizę kodu assemblerowego dla funkcji \mintinline{gas}{generate_key}. Musiałam prześledzić co dzieje się w niej krok po kroku i zrozumieć każdą operację. Odniosłam wrażenie, że kod assemblerowy mógł wyglądać trochę prościej niż ten, który zobaczyłam po wywołaniu komendy \mintinline{gas}{disas generate_key}. Być może było to mylne wrażenie. Po zrozumieniu kodu assemblera mogłam w krótkim czasie napisać prostą aplikację w języku Java, która potrafiła wygenerować hasło dla podanego przez użytkownika loginu.
+
+\begin{listing}[H]
+\caption{Fragment stworzonego keygena odpowiedzialny za szukanie klucza dla zadanego loginu.}
+\begin{minted}{Java}
+private static final String KEY = "pragys6uofbijzv93d0q5t2cw81nlk74mehx";
+StringBuilder builder = new StringBuilder();
+
+final int rest = login % 36;
+final int result = login / 100;
+
+final int and = result & 1;
+for (int i = 0; i < 32; i++) {
+    int rest2 = (i + rest) % 36;
+    if (and == 0) {
+        rest2 = 35 - rest2;
+    }
+    builder.append(KEY.charAt(rest2));
+}
+System.out.println("Password: " + builder.toString());
+
+\end{minted}
+\end{listing}
+
+\section{Wnioski}
+Udało mi się wykonać oba podpunkty zadania. Odczytanie hasła podczas debugowania programu było bardzo proste. Napisanie keygena było już jednak znacznie bardziej skomplikowane, ponieważ należało przeczytać i zrozumieć sposób działania kodu assemblerowego. Był to bardzo ciekawy trening pokazujący jak łatwo można dostać się do kodu programu. Dzięki temu dowiedziałam się jak wygląda jeden ze sposobów tworzenia keygenów. Często jednak stosowane są procedury utrudniające debugowanie i dezasemblację aplikacji. Stosowane jest także zaciemnianie kodu (ang. obfuscation), które znacząco utrudnia jego zrozumienie. Ma ono na celu utrudnienie inżynierii wstecznej programu.
+
+\listoflistings
+\end{document}
