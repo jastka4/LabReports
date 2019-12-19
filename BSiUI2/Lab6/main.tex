@@ -1,0 +1,250 @@
+\documentclass[12pt,a4paper,titlepage]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{polski}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{floatrow}
+\usepackage{minted}
+\usepackage{amsmath}
+\usepackage{caption}
+\usepackage{hyperref}
+
+\renewcommand\listoflistingscaption{Spis listingów}
+
+\setminted{
+    autogobble,
+    breaklines,
+    framerule=1pt,
+    framesep=10pt
+}
+
+\newenvironment{longlisting}{}{}
+
+\makeatletter
+\newcommand{\linia}{\rule{\linewidth}{0.4mm}}
+\renewcommand{\maketitle}{\begin{titlepage}
+    \vspace*{1cm}
+    \begin{center}\small
+    Politechnika Wrocławska\\
+    Wydział Elektroniki\\
+    Bezpieczeństwo Systemów i Usług Informatycznych 2
+    \end{center}
+    \vspace{3cm}
+    \noindent\linia
+    \begin{center}
+      \LARGE \textsc{\@title}
+         \end{center}
+     \linia
+    \vspace{0.5cm}
+    \begin{flushright}
+    \begin{minipage}{7cm}
+    \textit{\small Autor:}\\
+    \normalsize \textsc{\@author} \par
+    \end{minipage}
+    \vspace{5cm}
+
+     {\small wtorek, 11\textsuperscript{15}-14\textsuperscript{00} TN}\\
+        Mgr inż. Przemysław Świercz
+     \end{flushright}
+    \vspace*{\stretch{6}}
+    \begin{center}
+    \@date
+    \end{center}
+  \end{titlepage}%
+}
+\makeatother
+\author{Justyna Skalska, 225942}
+\title{Sprawozdanie nr 6\\
+(Crackme - modyfikacja plików binarnych)}
+
+\begin{document}
+\floatsetup[listing]{style=Plaintop}
+
+\maketitle
+
+\tableofcontents 
+\newpage
+\listoflistings
+\newpage
+% \listoffigures
+% \newpage
+
+\section{Omówienie tematu}
+\subsection{Wstęp}
+Naszym zadaniem podczas laboratorium było zmodyfikowanie pliku binarnego, który otrzymaliśmy od prowadzącego. Program prosił o podanie klucza w wyznaczonym czasie, żeby uzyskać wiadomość oznaczającą poprawne dostanie się do systemu. Należało zapoznać się z kodem assemblerowym aplikacji i zmodyfikować ją tak, żeby wiadomość powiadamiająca o sukcesie pojawiała się nawet mimo podania złego klucza. Należało znaleźć dwa sposoby na obejście tego zabezpieczenia. Kolejnym zdaniem było obejście ograniczenia czasowego na podanie klucza. Trzeba było znaleźć dwa sposoby na poradzenie sobie z tym. Ostatnim zadaniem było stworzenie aplikacji, która zmieniała wartość zapisaną pod podanym adresem w pliku binarnym na nową, podaną przez użytkownika.
+
+\subsection{Modyfikacja plików binarnych}
+Pliki binarne mają swoją strukturę. Każda wartość w pliku binarnym ma ustalone znaczenie. Sposób ułożenia danych w takim pliku nazywa się formatem pliku. Bloki danych, które można wyodrębnić określa się jako sekcja. Często spotyka się na początku pliku informacje, które pozwalają ustalić sposób ułożenia danych w dalszej części pliku. Takie dane początkowe to nagłówek pliku.~\cite{pliki-binarne} Można z niego odczytać położenie poszczególnych sekcji pliku oraz ich długość, a także punkt wejścia (ang. \textit{entry point}). Dzięki temu możemy odnaleźć sekcji i bajty, które chcemy zmodyfikować. Można to zrobić wykorzystując jakiś edytor heksadecymalny (ang. \textit{hex editor}) nazywany też szesnastkowym. Pozwala on wyświetlić zawartość pliku binarnego w formie tablicy bajtów. Wartość każdego bajtu jest pokazywana jako liczba w systemie szesnastkowym od wartości 00 do FF (dziesiętnie: od 0 do 255).~\cite{pliki-binarne}
+
+\section{Omówienie rozwiązania}
+\subsection{Zabezpieczenie kodem}
+W funkcji \mintinline{bash}{init} wykorzystywanej na początku funkcji \mintinline{asm}{main} znajduje się fragment, który inicjalizuje tablicę 42 adresami do funkcji \mintinline{asm}{looser} oraz 1 adresem funkcji \mintinline{asm}{winner}. Później w funkcji \mintinline{asm}{main} wywoływana jest funkcja zapisana pod jednym z adresów w tablicy.
+
+\begin{listing}[H]
+\caption{Funkcja looser}
+\begin{minted}{bash}
+08048552 <looser>:
+ 8048552:	55                   push   %ebp
+ 8048553:	89 e5                mov    %esp,%ebp
+ 8048555:	83 ec 18             sub    $0x18,%esp
+ 8048558:	c7 04 24 63 87 04 08 movl   $0x8048763,(%esp)
+ 804855f:	e8 74 fe ff ff       call   80483d8 <puts@plt>
+ 8048564:	c9                   leave
+ 8048565:	c3                   ret
+\end{minted}
+\end{listing}
+
+\begin{listing}[H]
+\caption{Funkcja winner}
+\begin{minted}{bash}
+08048566 <winner>:
+ 8048566:	55                   push   %ebp
+ 8048567:	89 e5                mov    %esp,%ebp
+ 8048569:	83 ec 18             sub    $0x18,%esp
+ 804856c:	c7 04 24 78 87 04 08 movl   $0x8048778,(%esp)
+ 8048573:	e8 60 fe ff ff       call   80483d8 <puts@plt>
+ 8048578:	c9                   leave
+ 8048579:	c3                   ret
+\end{minted}
+\end{listing}
+
+\subsubsection{Sposób nr 1}
+ Aby mieć pewność, że zawsze wywołamy funkcję \mintinline{asm}{winner} można tablicę w \mintinline{asm}{init} wypełnić tylko adresem funkcji \mintinline{asm}{winner}. Na początku należało odczytać z objdump adres bajtów, które chcemy podmienić. Adres funkcji \mintinline{asm}{winner} wynosi 0x8048566, a funkcji \mintinline{asm}{looser} 0x8048552. Wychodzi na to że wystarczy podmienić jeden bajt danych adresu, 0x52 na 0x66. Następnym krokiem było znalezienie adresu bajtu wynoszącego 0x52. Z objdump wynika, że jest to 0x0804858d. Ostatnim krokiem było przejście do strony \url{https://hexed.it}, załadowanie modyfikowanego pliku binarnego i obliczenie szukanego adresu. Podczas liczenia adresu skorzystałam z przedstawionego poniżej równania:
+\begin{equation*}
+    file\_offset = virtual\_address - entry\_point\_address + section\_offset
+\end{equation*}
+
+\noindent Dane odczytane z nagłówka ELF oraz objdump:
+\begin{itemize}
+    \item 0x0804858d - adres wirtualny,
+    \item 0x3f0 - offset sekcji \mintinline{asm}{.text},
+    \item 0x080483f0 - adres punktu wejścia.
+\end{itemize}
+
+\noindent Przykład obliczania wcześniej wspomnianego offsetu dla adresu 0x0804858d:
+\begin{equation*}
+    0x58d = 0x0804858d - 0x080483f0 + 0x3f0
+\end{equation*}
+
+\noindent Po zamianie bajtu danych wyeksportowałam zmodyfikowaną aplikację i przetestowałam. Udało mi się uzyskać dostęp do aplikacji i wyświetlić tekst z funkcji \mintinline{asm}{winner}.
+
+\subsubsection{Sposób nr 2}
+Kolejnym sposobem obejścia zabezpieczeń kodu była modyfikacja funkcji \mintinline{asm}{looser}. Zamiast wyświetlać normalny komunikat, można zastąpić go komunikatem z funkcji \mintinline{asm}{winner}. Wiadomości z obu tych funkcji zapisane były pod dwoma adresami 0x8048763 dla \mintinline{asm}{looser} oraz 0x8048778 dla \mintinline{asm}{winner}. Należało podmienić tylko jeden bajt adresu w funkcji \mintinline{asm}{looser} z 0x63 na 0x78. Obliczanie offsetu wykonałam analogicznie do pierwszego przykładu. Po pobraniu zmodyfikowanego pliku i przetestowaniu udało się uzyskać pożądany efekt, czyli wyświetlenie komunikatu z funkcji \mintinline{asm}{winner}. 
+
+\subsection{Ograniczenie czasowe}
+W aplikacji istnieje ograniczenie czasowe, które uniemożliwi nam poprawną weryfikację kodu, gdy licznik osiągnie odpowiednią wartość. Kolejnym zadaniem było obejście tego ograniczenia w taki sposób, żeby klucz można było wprowadzić w dowolnym momencie życia aplikacji.
+
+\begin{listing}[H]
+\caption{Funkcja time\_guard}
+\begin{minted}{bash}
+080484a4 <time_guard>:
+ 80484a4:  55                   push   %ebp
+ 80484a5:  89 e5                mov    %esp,%ebp
+ 80484a7:  83 ec 18             sub    $0x18,%esp
+ 80484aa:  c7 04 24 00 00 00 00 movl   $0x0,(%esp)
+ 80484b1:  e8 02 ff ff ff       call   80483b8 <time@plt>
+ 80484b6:  8b 15 20 a0 04 08    mov    0x804a020,%edx
+ 80484bc:  29 d0                sub    %edx,%eax
+ 80484be:  83 f8 02             cmp    $0x2,%eax
+ 80484c1:  7e 07                jle    80484ca<time_guard+0x26>
+ 80484c3:  b8 ff ff ff ff       mov    $0xffffffff,%eax
+ 80484c8:  eb 16                jmp    80484e0<time_guard+0x3c>
+ 80484ca:  c7 04 24 00 00 00 00 movl   $0x0,(%esp)
+ 80484d1:  e8 e2 fe ff ff       call   80483b8 <time@plt>
+ 80484d6:  a3 20 a0 04 08       mov    %eax,0x804a020
+ 80484db:  b8 00 00 00 00       mov    $0x0,%eax
+ 80484e0:  c9                   leave
+ 80484e1:  c3                   ret
+\end{minted}
+\end{listing}
+
+\subsubsection{Sposób nr 1}
+Pierwszym sposobem jest modyfikacja funkcji \mintinline{asm}{time_guard}. Zwraca ona 0 jeśli czas, który minął od początku życia aplikacji jest mniejszy niż zadany w kodzie, jeśli jest większy zwracana jest wtedy inna liczba różna od 0. Funkcja jest tak zbudowana, że w przypadku przekroczenia czasu program skacze do komendy \mintinline{asm}{leave} i kończy wykonywanie funkcji zwracając wartość różną od 0. Wystarczyło podmienić offset w funkcji skoku z 0x16 nad 0x11, żeby skoczyć o jedną instrukcję (5 bajtów) wcześniej i przypisywać 0 do \mintinline{bash}{eax} nawet w przypadku przekroczenia limitu czasu. Po wyeksportowaniu zmodyfikowanego pliku i przetestowaniu okazało się, że zmiana zadziałała poprawnie i limit czasu został usunięty.
+
+\subsubsection{Sposób nr 2}
+Kolejnym sposobem na ominięcie zabezpieczenia było zmodyfikowane funkcji \mintinline{asm}{main}. Po każdym wywołaniu \mintinline{asm}{time_guard} następowało sprawdzanie czy zwrócona przez funkcję wartość wynosi 0. Jeśli nie to program przechodził dalej i wywoływał funkcję \mintinline{asm}{cheater}, co prowadziło do wywołania funkcji \mintinline{asm}{looser}. W przeciwnym wypadku program przeskakiwał wywołanie \mintinline{asm}{cheater}. Wystarczyło podmienić skok warunkowy na skok, który wykonywał się zawsze w dwóch miejscach. Pierwsze wywołanie funkcji \mintinline{asm}{time_guard} można było zostawić bez zmian, ponieważ wykonywało się ono przed przyjęciem danych od użytkownika, więc bez jakiekolwiek opóźnienia. Podmieniłam kod 0x74 skoku warunkowego \mintinline{asm}{je} na kod 0xeb zwykłego skoku. Po pobraniu zmodyfikowanej aplikacji o przetestowaniu okazało się, że zmiana zadziałała poprawnie i limit czasu został usunięty. 
+
+\subsection{Aplikacja do modyfikowania plików binarnych}
+Do wykonania ostatniego zadania wykorzystałam język C oraz bibliotekę \textit{elf.h}, stworzoną do manipulacji plikami ELF.
+
+\begin{listing}[H]
+\caption{Główna funkcja program do manipulacji plikami binarnymi.}
+\begin{minted}{c}
+int main(int argc, const char *argv[]) {
+    if (argc < 3) {
+        ERROR("Not enough arguments provided!");
+        return 0;
+    }
+
+    printf("Enter a hexadecimal address: ");
+    unsigned int address = read_hex_value(8);
+    printf("Enter a hexadecimal value: ");
+    unsigned int value = read_hex_value(2);
+
+    FILE *input_file = fopen(argv[1], "rb");
+    if (input_file == NULL) {
+        fprintf(stderr, "Unable to open '%s': %s\n", argv[1], strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    int fd = fileno(input_file);
+    struct stat stat_buffer;
+    fstat(fd, &stat_buffer);
+    char *fbase = mmap(NULL, stat_buffer.st_size, PROT_READ, MAP_SHARED, fd, 0);
+\end{minted}
+\end{listing}
+\begin{listing}[H]
+\begin{minted}{c}
+    Elf32_Ehdr *ehdr = (Elf32_Ehdr *) fbase;
+    unsigned int entry_point = ehdr->e_entry;
+    unsigned int text_section_offset;
+
+    if (!elf_check_file(ehdr)) {
+        fprintf(stderr, "'%s' is not an ELF file\n", argv[1]);
+        fclose(input_file);
+        return 0;
+    }
+
+    Elf32_Shdr *sects = (Elf32_Shdr *) elf_sheader(fbase, ehdr);
+    char *shstrtab = elf_str_table(fbase, ehdr);
+    for (int i = 0; i < ehdr->e_shnum; i++) {
+        if (!strcmp(shstrtab + sects[i].sh_name, ".text")) {
+            text_section_offset = sects[i].sh_offset;
+        }
+    }
+
+    long file_length = get_file_length(input_file);
+    char *binary = read_binary_file(input_file, file_length);
+    unsigned int calculated_offset = address - entry_point + text_section_offset;
+
+    printf("Actual value: %hhX\n", binary[calculated_offset]);
+    binary[calculated_offset] = value;
+    printf("New value: %hhX\n", binary[calculated_offset]);
+
+    FILE *output_file = fopen(argv[2], "wb");
+    if (output_file == NULL) {
+        fprintf(stderr, "Unable to create '%s': %s\n", argv[2], strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    write_binary_file(output_file, file_length, binary);
+
+    fclose(output_file);
+    fclose(input_file);
+    return 0;
+}
+\end{minted}
+\end{listing}
+
+Stworzony przeze mnie program przyjmuje dwa argumenty. Plik przeznaczony do modyfikacji oraz nazwę pliku, do którego chcemy zapisać zmodyfikowany pierwszy plik. Po starcie aplikacja pyta o dwie wartości. Pierwszą z nich jest adres, który chcemy zmodyfikować, a drugim wartość, którą chcemy wpisać pod podany wcześniej adres. Obie wartości należy podać w systemie szesnastkowym bez wiodącego 0x.
+
+\section{Wnioski}
+Podczas zajęć udało mi się wykonać wszystkie zadania. Zabezpieczenie kodem oraz ograniczenie czasowe aplikacji można było obejść na wiele różnych sposób, jedna są bardziej eleganckie od innych. Przedstawiłam tylko po dwóch wybranych przykładach. Ograniczenie czasowe można było także obejść wstawiając komendę NOP w odpowiednich miejscach, aby nie dopuścić do ich wykonania (np. wywołanie funkcji \mintinline{asm}{cheater}). Dzięki tym zajęciom dowiedziałam się jak w prosty sposób można odczytać kod aplikacji i manipulować nim według własnego uznania. Wykorzystanie tej wiedzy w większych programach może być problematyczne, ponieważ wymaga analizowania i zrozumienia kodu assemblera.
+
+Trudno jest zapobiec tego typu atakom, ponieważ modyfikowany jest tu kod binarny już skompilowanego programu i nie wykonuje się tu wstrzykiwania własnych instrukcji do aplikacji w trakcie jej wykonywania. Jednym ze sposobów protekcji jest użycie wartości sumy kontrolnej dla całej aplikacji. Ta metoda pozwala wykryć modyfikacje obrazu wykonywalnego. Potrzeba do tego programu rozruchowego, który przechowuje prawidłową sumę kontrolną dla wybranego obrazu binarnego. Sam program rozruchowy powinien znajdować się w nieulotnej, chronionej pamięci, najlepiej w samym mikroprocesorze, jeśli ma wbudowaną pamięć ROM jakiegoś typu.~\cite{protecting-binary-executables} Często także stosowane są procedury utrudniające debugowanie i deasemblację aplikacji. Stosowane jest także zaciemnianie kodu (ang. \textit{obfuscation}), które znacząco utrudnia jego zrozumienie. Ma ono na celu utrudnienie inżynierii wstecznej programu.
+\newpage
+\bibliographystyle{unsrt}
+\bibliography{references}
+
+\end{document}
